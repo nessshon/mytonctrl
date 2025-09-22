@@ -6,6 +6,7 @@ import typing
 from typing import Optional
 
 from modules.module import MtcModule
+from mytonctrl.console_cmd import add_command, check_usage_two_args, check_usage_args_min_max_len
 from mypylib.mypylib import color_print, ip2int, run_as_root, parse
 from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user, pop_user_from_args
@@ -38,10 +39,9 @@ class BackupModule(MtcModule):
         with get_package_resource_path('mytonctrl', 'scripts/create_backup.sh') as backup_script_path:
             return subprocess.run(["bash", backup_script_path, "-u", user] + args, timeout=5)
 
-    def create_backup(self, args: list) -> typing.Union[int, None]:
-        if len(args) > 3:
-            color_print("{red}Bad args. Usage:{endc} create_backup [filename] [-u <user>]")
-            return None
+    def create_backup(self, args):
+        if not check_usage_args_min_max_len("create_backup", args, 0, 2):
+            return
         tmp_dir = self.create_tmp_ton_dir()
         command_args = ["-m", self.ton.local.buffer.my_work_dir, "-t", tmp_dir]
         user = pop_user_from_args(args)
@@ -64,8 +64,7 @@ class BackupModule(MtcModule):
             return run_as_root(["bash", restore_script_path, "-u", user] + args)
 
     def restore_backup(self, args):
-        if len(args) == 0 or len(args) > 5:
-            color_print("{red}Bad args. Usage:{endc} restore_backup <filename> [-y] [--skip-create-backup] [-u <user>]")
+        if not check_usage_args_min_max_len('restore_backup', args, 1, 5):
             return
         user = pop_user_from_args(args)
         if '-y' not in args:
@@ -99,5 +98,5 @@ class BackupModule(MtcModule):
             color_print("restore_backup - {red}Error{endc}")
 
     def add_console_commands(self, console):
-        console.AddItem("create_backup", self.create_backup, self.local.translate("create_backup_cmd"))
-        console.AddItem("restore_backup", self.restore_backup, self.local.translate("restore_backup_cmd"))
+        add_command(self.local, console, "create_backup", self.create_backup)
+        add_command(self.local, console, "restore_backup", self.restore_backup)

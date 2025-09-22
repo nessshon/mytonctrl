@@ -77,17 +77,17 @@ def Init(local, console):
 	# Create user console
 	console.name = "MyTonInstaller"
 	console.color = console.RED
-	console.AddItem("status", inject_globals(Status), "Print TON component status")
-	console.AddItem("set_node_argument", inject_globals(set_node_argument), "Set node argument")
-	console.AddItem("enable", inject_globals(Enable), "Enable some function")
-	console.AddItem("update", inject_globals(Enable), "Update some function: 'JR' - jsonrpc.  Example: 'update JR'")
-	console.AddItem("plsc", inject_globals(PrintLiteServerConfig), "Print lite-server config")
-	console.AddItem("clcf", inject_globals(CreateLocalConfigFile), "Create lite-server config file")
-	console.AddItem("print_ls_proxy_config", inject_globals(print_ls_proxy_config), "Print ls-proxy config")
-	console.AddItem("create_ls_proxy_config_file", inject_globals(create_ls_proxy_config_file), "Create ls-proxy config file")
-	console.AddItem("drvcf", inject_globals(DRVCF), "Dangerous recovery validator config file")
-	console.AddItem("setwebpass", inject_globals(SetWebPassword), "Set a password for the web admin interface")
-	console.AddItem("ton_storage_list", inject_globals(ton_storage_list), "Print result of /list method at Ton Storage API")
+	console.add_item("status", inject_globals(Status), "Print TON component status")
+	console.add_item("set_node_argument", inject_globals(set_node_argument), "Set node argument", "<arg_name> [arg_value1] [arg_value2] [-d (to delete)]")
+	console.add_item("enable", inject_globals(Enable), "Enable some function", "<mode_name>")
+	console.add_item("update", inject_globals(Enable), "Update some function: 'JR' - jsonrpc.  Example: 'update JR'", "<mode_name>")
+	console.add_item("plsc", inject_globals(PrintLiteServerConfig), "Print lite-server config")
+	console.add_item("clcf", inject_globals(CreateLocalConfigFile), "Create lite-server config file", "[-u <user>]")
+	console.add_item("print_ls_proxy_config", inject_globals(print_ls_proxy_config), "Print ls-proxy config")
+	console.add_item("create_ls_proxy_config_file", inject_globals(create_ls_proxy_config_file), "Create ls-proxy config file")
+	console.add_item("drvcf", inject_globals(DRVCF), "Dangerous recovery validator config file")
+	console.add_item("setwebpass", inject_globals(SetWebPassword), "Set a password for the web admin interface")
+	console.add_item("ton_storage_list", inject_globals(ton_storage_list), "Print result of /list method at Ton Storage API")
 
 	Refresh(local)
 #end define

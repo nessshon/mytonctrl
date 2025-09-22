@@ -1,6 +1,7 @@
 from modules.module import MtcModule
 from mypylib import color_print, print_table
 from mytoncore import b642hex, signed_int_to_hex64, shard_prefix_len, hex_shard_to_int, shard_prefix, shard_is_ancestor
+from mytonctrl.console_cmd import check_usage_args_min_len, add_command, check_usage_no_args, check_usage_args_lens
 from mytonctrl.utils import pop_arg_from_args
 
 
@@ -44,9 +45,7 @@ class CollatorModule(MtcModule):
     def setup_collator(self, args: list):
         from mytoninstaller.mytoninstaller import set_node_argument
         from mytoninstaller.node_args import get_node_args
-
-        if not args:
-            color_print("{red}Bad args. Usage:{endc} setup_collator [--force] [--adnl <ADNL address>] <shard1> [shard2] ...")
+        if not check_usage_args_min_len("setup_collator", args, 1):
             return
         force = '--force' in args
         args.remove('--force') if '--force' in args else None
@@ -81,6 +80,8 @@ class CollatorModule(MtcModule):
         color_print("setup_collator - {green}OK{endc}")
 
     def stop_collator(self, args: list):
+        if not check_usage_args_lens("stop_collator", args, [0, 2]):
+            return
         if not args:
             text = f"{{red}}WARNING: This action will stop and delete all local collation broadcasts from this node for all shards.{{endc}}\n"
             color_print(text)
@@ -104,17 +105,12 @@ class CollatorModule(MtcModule):
             color_print("stop_collator - {green}OK{endc}")
             return
 
-        if len(args) == 2:
-            adnl_addr, shard_str = args
-            if ':' not in shard_str:
-                color_print("{red}Bad args. Usage:{endc} stop_collator <adnl_id> <workchain>:<shard_hex>")
-                return
-            shard_id = hex_shard_to_int(shard_str)
-            workchain = int(shard_id['workchain'])
-            shard_int = int(shard_id['shard'])
-        else:
-            color_print("{red}Bad args. Usage:{endc} stop_collator <adnl_id> <workchain>:<shard_hex>")
-            return
+        adnl_addr, shard_str = args
+        if ':' not in shard_str:
+            raise Exception(f"Invalid shard: {shard_str}, use format <workchain>:<shard_hex>")
+        shard_id = hex_shard_to_int(shard_str)
+        workchain = int(shard_id['workchain'])
+        shard_int = int(shard_id['shard'])
 
         res = self.ton.validatorConsole.Run(f"del-collator {adnl_addr} {workchain} {shard_int}")
         if 'successfully removed collator' not in res.lower():
@@ -136,8 +132,7 @@ class CollatorModule(MtcModule):
         print_table(table)
 
     def add_validator_to_collation_wl(self, args: list):
-        if len(args) < 1:
-            color_print("{red}Bad args. Usage:{endc} add_validator_to_collation_wl <adnl> [adnl2] [adnl3] ...")
+        if not check_usage_args_min_len("add_validator_to_collation_wl", args, 1):
             return
         self.ton.validatorConsole.Run(f"collator-whitelist-enable 1")
         self.local.add_log("Collation whitelist enabled")
@@ -148,8 +143,7 @@ class CollatorModule(MtcModule):
         color_print("add_validator_to_collation_wl - {green}OK{endc}")
 
     def delete_validator_from_collation_wl(self, args: list):
-        if len(args) < 1:
-            color_print("{red}Bad args. Usage:{endc} delete_validator_from_collation_wl <adnl> [adnl2] [adnl3] ...")
+        if not check_usage_args_min_len("delete_validator_from_collation_wl", args, 1):
             return
         for adnl_addr in args:
             result = self.ton.validatorConsole.Run(f"collator-whitelist-del {adnl_addr}")
@@ -158,8 +152,7 @@ class CollatorModule(MtcModule):
         color_print("delete_validator_from_collation_wl - {green}OK{endc}")
 
     def disable_collation_validator_wl(self, args: list):
-        if len(args) != 0:
-            color_print("{red}Bad args. Usage:{endc} disable_collation_validator_wl")
+        if not check_usage_no_args("disable_collation_wl", args):
             return
         result = self.ton.validatorConsole.Run(f"collator-whitelist-enable 0")
         if 'success' not in result:
@@ -186,10 +179,10 @@ class CollatorModule(MtcModule):
 
 
     def add_console_commands(self, console):
-        console.AddItem("setup_collator", self.setup_collator, self.local.translate("setup_collator_cmd"))
-        console.AddItem("print_local_collators", self.print_collators, self.local.translate("print_local_collators_cmd"))
-        console.AddItem("add_validator_to_collation_wl", self.add_validator_to_collation_wl, self.local.translate("add_validator_to_collation_wl_cmd"))
-        console.AddItem("delete_validator_from_collation_wl", self.delete_validator_from_collation_wl, self.local.translate("delete_validator_from_collation_wl_cmd"))
-        console.AddItem("disable_collation_wl", self.disable_collation_validator_wl, self.local.translate("disable_collation_validator_wl_cmd"))
-        console.AddItem("print_collation_whitelist", self.print_collation_validators_whitelist, self.local.translate("print_collation_validators_whitelist_cmd"))
-        console.AddItem("stop_collator", self.stop_collator, self.local.translate("stop_collator_cmd"))
+        add_command(self.local, console, "setup_collator", self.setup_collator)
+        add_command(self.local, console, "print_local_collators", self.print_collators)
+        add_command(self.local, console, "add_validator_to_collation_wl", self.add_validator_to_collation_wl)
+        add_command(self.local, console, "delete_validator_from_collation_wl", self.delete_validator_from_collation_wl)
+        add_command(self.local, console, "disable_collation_wl", self.disable_collation_validator_wl)
+        add_command(self.local, console, "print_collation_whitelist", self.print_collation_validators_whitelist)
+        add_command(self.local, console, "stop_collator", self.stop_collator)
