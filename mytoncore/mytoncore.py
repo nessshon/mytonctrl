@@ -1304,7 +1304,7 @@ class MyTonCore():
 		stake = self.local.db.get("stake")
 		usePool = self.using_pool()
 		useController = self.using_liquid_staking()
-		stakePercent = self.local.db.get("stakePercent", 99)
+		stakePercent = self.local.db.get("stakePercent", 100)
 		vconfig = self.GetValidatorConfig()
 		validators = vconfig.get("validators")
 		config17 = self.GetConfig17()
@@ -1343,6 +1343,8 @@ class MyTonCore():
 					stake = int(account.balance*sp)
 			elif len(vconfig.validators) > 0:
 				stake = int(account.balance*sp)
+			if stakePercent == 100:
+				stake -= 20
 
 		# Check if we have enough coins
 		if stake > config17["maxStake"]:
