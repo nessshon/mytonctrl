@@ -1,6 +1,7 @@
 import datetime
 import os
 import os.path
+import sys
 import time
 import typing
 
@@ -139,40 +140,50 @@ def download_master_blocks(local, bag: dict, downloads_path: str):
 		return
 
 
+def do_request(local, method: str, url: str, **kwargs) -> dict:
+	for _ in range(3):
+		try:
+			return requests.request(method, url, **kwargs).json()
+		except Exception as e:
+			local.add_log(f"Error making {method} request for {url}: {e}. Retrying", "error")
+			time.sleep(5)
+	raise Exception(f"Failed to make {method} request for {url}")
+
+
 def download_bag(local, bag_id: str, downloads_path: str, download_all: bool = True, download_file: typing.Callable = None):
 	indexes = []
 	local_ts_url = f"http://127.0.0.1:{local.buffer.ton_storage.api_port}"
 
-	resp = requests.post(local_ts_url + '/api/v1/add', json={'bag_id': bag_id, 'download_all': download_all, 'path': downloads_path})
-	if not resp.json()['ok']:
-		local.add_log("Error adding bag: " + resp.json(), "error")
+	resp = do_request(local, 'POST', local_ts_url + '/api/v1/add', json={'bag_id': bag_id, 'download_all': download_all, 'path': downloads_path})
+	if not resp['ok']:
+		local.add_log(f"Error adding bag: {resp}", "error")
 		return False
-	resp = requests.get(local_ts_url + f'/api/v1/details?bag_id={bag_id}').json()
+	resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
 	if not download_all:
 		while not resp['header_loaded']:
 			time.sleep(1)
-			resp = requests.get(local_ts_url + f'/api/v1/details?bag_id={bag_id}').json()
+			resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
 		for f in resp['files']:
 			if download_file(f):
 				indexes.append(f['index'])
-		resp = requests.post(local_ts_url + '/api/v1/add', json={'bag_id': bag_id, 'download_all': download_all, 'path': downloads_path, 'files': indexes})
-		if not resp.json()['ok']:
-			local.add_log("Error adding bag: " + resp.json(), "error")
+		resp = do_request(local, 'POST', local_ts_url + '/api/v1/add', json={'bag_id': bag_id, 'download_all': download_all, 'path': downloads_path, 'files': indexes})
+		if not resp['ok']:
+			local.add_log(f"Error adding bag: {resp}", "error")
 			return False
 		time.sleep(3)
-		resp = requests.get(local_ts_url + f'/api/v1/details?bag_id={bag_id}').json()
+		resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
 	while not resp['completed']:
 		if resp['size'] == 0:
 			local.add_log(f"STARTING DOWNLOADING {bag_id}", "debug")
 			time.sleep(20)
-			resp = requests.get(local_ts_url + f'/api/v1/details?bag_id={bag_id}').json()
+			resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
 			continue
 		text = f'DOWNLOADING {bag_id} {round((resp["downloaded"] / resp["size"]) * 100)}% ({resp["downloaded"] / 10**6} / {resp["size"] / 10**6} MB), speed: {resp["download_speed"] / 10**6} MB/s'
 		local.add_log(text, "debug")
 		time.sleep(20)
-		resp = requests.get(local_ts_url + f'/api/v1/details?bag_id={bag_id}').json()
+		resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
 	local.add_log(f"DOWNLOADED {bag_id}", "debug")
-	requests.post(local_ts_url + '/api/v1/remove', json={'bag_id': bag_id, 'with_files': False})
+	do_request(local, 'POST', local_ts_url + '/api/v1/remove', json={'bag_id': bag_id, 'with_files': False})
 	return True
 
 
@@ -226,7 +237,19 @@ def download_archive_from_ts(local):
 	block_bags = []
 	master_block_bags = []
 
-	blocks_config = requests.get(url, timeout=3).json()
+	blocks_config = None
+
+	for _ in range(5):
+		try:
+			blocks_config = requests.get(url, timeout=3).json()
+		except Exception as e:
+			local.add_log(f"Failed to get blocks config: {e}. Retrying", "error")
+			time.sleep(10)
+
+	if blocks_config is None:
+		local.add_log(f"Failed to get blocks config: {url}. Aborting installation", "error")
+		sys.exit(1)
+
 	for state in blocks_config['states']:
 		if state['at_block'] > block_from:
 			break
