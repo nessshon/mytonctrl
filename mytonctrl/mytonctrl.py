@@ -553,6 +553,11 @@ def check_slashed(local, ton):
 #end define
 
 def check_adnl(local, ton):
+	try:
+		config = ton.GetValidatorConfig()
+		if config.fullnodeslaves:
+			return
+	except: ...
 	from modules.utilities import UtilitiesModule
 	utils_module = UtilitiesModule(ton, local)
 	ok, error = utils_module.check_adnl_connection()
