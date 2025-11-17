@@ -2,10 +2,9 @@ import json
 import os
 import subprocess
 
-import pkg_resources
-
 from modules.module import MtcModule
 from mypylib.mypylib import run_as_root, color_print, bcolors, print_table
+from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user
 
 
@@ -59,20 +58,20 @@ LOG_FILE=/var/log/btc_teleport/btc_teleport.log
 
     def add_daemon(self, user: str = None):
         start = f'{self.bin_dir}/oracle'
-        script_path = pkg_resources.resource_filename('mytoninstaller', 'scripts/add2systemd.sh')
         if user is None:
             user = get_current_user()
-        run_as_root(['bash', script_path, '-n', 'btc_teleport', '-u', user, '-g', user, '-s', start, '-w', self.bin_dir])
+        with get_package_resource_path('mytoninstaller', 'scripts/add2systemd.sh') as script_path:
+            run_as_root(['bash', script_path, '-n', 'btc_teleport', '-u', user, '-g', user, '-s', start, '-w', self.bin_dir])
 
     def install(self, branch: str, user: str = None):
-        script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/btc_teleport1.sh')
         if user is None:
             user = get_current_user()
-        exit_code = run_as_root(["bash", script_path, "-s", '/usr/src', "-r", self.repo_name, "-b", branch, "-u", user])
+        with get_package_resource_path('mytonctrl', 'scripts/btc_teleport1.sh') as script_path:
+            exit_code = run_as_root(["bash", script_path, "-s", '/usr/src', "-r", self.repo_name, "-b", branch, "-u", user])
         if exit_code != 0:
             raise Exception('Failed to install btc_teleport')
-        script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/btc_teleport2.sh')
-        subprocess.run(["bash", script_path, "-s", self.src_dir])
+        with get_package_resource_path('mytonctrl', 'scripts/btc_teleport2.sh') as script_path:
+            subprocess.run(["bash", script_path, "-s", self.src_dir])
 
     def init(self, reinstall=False, branch: str = 'master', user: str = None):
         if os.path.exists(self.src_dir) and not reinstall:
@@ -89,8 +88,8 @@ LOG_FILE=/var/log/btc_teleport/btc_teleport.log
 
     @staticmethod
     def run_remove_btc_teleport(args):
-        script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/remove_btc_teleport.sh')
-        return run_as_root(["bash", script_path] + args)
+        with get_package_resource_path('mytonctrl', 'scripts/remove_btc_teleport.sh') as script_path:
+            return run_as_root(["bash", script_path] + args)
 
     def get_save_offers(self):
         bname = "saveOffersBtcTeleport"

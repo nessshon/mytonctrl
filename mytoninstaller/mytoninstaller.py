@@ -7,10 +7,9 @@ import random
 import json
 import subprocess
 
-import pkg_resources
-
 from mypylib.mypylib import MyPyClass, run_as_root, color_print
 from mypyconsole.mypyconsole import MyPyConsole
+from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user, pop_user_from_args
 
 from mytoninstaller.config import GetLiteServerConfig, get_ls_proxy_config
@@ -158,8 +157,8 @@ def set_node_argument(local, args):
 		return
 	arg_name = args[0]
 	args = [arg_name, " ".join(args[1:])]
-	script_path = pkg_resources.resource_filename('mytoninstaller.scripts', 'set_node_argument.py')
-	run_as_root(['python3', script_path] + args)
+	with get_package_resource_path('mytoninstaller.scripts', 'set_node_argument.py') as script_path:
+		run_as_root(['python3', script_path] + args)
 	color_print("set_node_argument - {green}OK{endc}")
 #end define
 

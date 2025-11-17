@@ -3,10 +3,9 @@ import shutil
 import subprocess
 import time
 
-import pkg_resources
-
 from modules.module import MtcModule
 from mypylib.mypylib import color_print, ip2int, run_as_root, parse, MyPyClass
+from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user, pop_user_from_args
 from mytoninstaller.config import get_own_ip
 
@@ -32,8 +31,8 @@ class BackupModule(MtcModule):
     def run_create_backup(args, user: str = None):
         if user is None:
             user = get_current_user()
-        backup_script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/create_backup.sh')
-        return subprocess.run(["bash", backup_script_path, "-u", user] + args, timeout=5)
+        with get_package_resource_path('mytonctrl', 'scripts/create_backup.sh') as backup_script_path:
+            return subprocess.run(["bash", backup_script_path, "-u", user] + args, timeout=5)
 
     def create_backup(self, args):
         if len(args) > 3:
@@ -58,8 +57,8 @@ class BackupModule(MtcModule):
     def run_restore_backup(args, user: str = None):
         if user is None:
             user = get_current_user()
-        restore_script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/restore_backup.sh')
-        return run_as_root(["bash", restore_script_path, "-u", user] + args)
+        with get_package_resource_path('mytonctrl', 'scripts/restore_backup.sh') as restore_script_path:
+            return run_as_root(["bash", restore_script_path, "-u", user] + args)
 
     def restore_backup(self, args):
         if len(args) == 0 or len(args) > 5:
