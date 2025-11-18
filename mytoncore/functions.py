@@ -499,6 +499,7 @@ def Telemetry(local, ton):
     data["cpuInfo"] = {'cpuName': local.try_function(get_cpu_name), 'virtual': local.try_function(is_host_virtual)}
     data["validatorDiskName"] = local.try_function(get_validator_disk_name)
     data["pings"] = local.try_function(get_pings_values)
+    data["pythonVersion"] = sys.version
 
     # Get git hashes
     gitHashes = dict()
