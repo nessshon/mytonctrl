@@ -1,9 +1,8 @@
 import os
 
-import pkg_resources
-
 from mypylib.mypylib import color_print
 from modules.pool import PoolModule
+from mytoncore.utils import get_package_resource_path
 
 
 class SingleNominatorModule(PoolModule):
@@ -21,12 +20,11 @@ class SingleNominatorModule(PoolModule):
             self.ton.local.add_log("create_single_pool warning: Pool already exists: " + file_path, "warning")
             return
 
-        fift_script = pkg_resources.resource_filename('mytoncore', 'contracts/single-nominator-pool/init.fif')
-        code_boc = pkg_resources.resource_filename('mytoncore',
-                                                   'contracts/single-nominator-pool/single-nominator-code.hex')
         validator_wallet = self.ton.GetValidatorWallet()
-        args = [fift_script, code_boc, owner_address, validator_wallet.addrB64, file_path]
-        result = self.ton.fift.Run(args)
+        with get_package_resource_path('mytoncore', 'contracts/single-nominator-pool/init.fif') as fift_script:
+            with get_package_resource_path('mytoncore', 'contracts/single-nominator-pool/single-nominator-code.hex') as code_boc:
+                args = [fift_script, code_boc, owner_address, validator_wallet.addrB64, file_path]
+                result = self.ton.fift.Run(args)
         if "Saved single nominator pool" not in result:
             raise Exception("create_single_pool error: " + result)
 
