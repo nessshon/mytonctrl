@@ -2,6 +2,7 @@ import base64
 import json
 import time
 import subprocess
+import typing
 
 import requests
 from nacl.signing import SigningKey
@@ -66,3 +67,21 @@ def is_testnet(local):
 	if config['validator']['zero_state']['root_hash'] == testnet_zero_state_root_hash:
 		return True
 	return False
+
+
+def get_ton_storage_port(local) -> typing.Optional[int]:
+	p = subprocess.run(["systemctl", "cat", "ton_storage.service"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+					   timeout=3)
+	if p.returncode != 0:
+		local.add_log(f"Failed to get ton_storage.service", "error")
+		return None
+	p.output = p.stdout.decode("utf-8")
+	for line in p.output.splitlines():
+		if line.startswith('ExecStart'):
+			cmd = line.split()
+			if '-api' not in cmd:
+				local.add_log(f"Failed to find -api in ton_storage.service exec command", "error")
+				return None
+			return int(cmd[cmd.index('-api') + 1].split(':')[1])
+	local.add_log(f"Failed to find ExecStart in ton_storage.service", "error")
+	return None

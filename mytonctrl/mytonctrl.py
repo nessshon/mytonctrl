@@ -51,6 +51,7 @@ from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_conf
 import sys, getopt, os
 
 from mytoninstaller.archive_blocks import download_blocks
+from mytoninstaller.utils import get_ton_storage_port
 
 
 def Init(local, ton, console, argv):
@@ -1128,21 +1129,28 @@ def ImportShardOverlayCert(ton, args):
 #end define
 
 
-def download_archive_blocks(local, args):
-	if len(args) < 3:
-		color_print("{red}Bad args. Usage:{endc} download_archive_blocks <download_path> <ton_storage_api_port> <from_block_seqno> [to_block_seqno] [--only-master]")
+def download_archive_blocks(local, args: list):
+	if len(args) < 2:
+		color_print("{red}Bad args. Usage:{endc} download_archive_blocks [ton_storage_api_port] <download_path> <from_block_seqno> [to_block_seqno] [--only-master]")
 		return
 
 	only_master = pop_arg_from_args(args, '--only-master')
+	api_port = None
+	if args[0].isdigit():
+		api_port = args.pop(0)
 	path = pathlib.Path(args[0])
-	api_port = args[1]
-	from_block = args[2]
-	to_block = args[3] if len(args) >= 4 else None
+	from_block = args[1]
+	to_block = args[2] if len(args) >= 3 else None
 	try:
 		from_block, to_block = int(from_block), int(to_block) if to_block else None
 	except:
 		color_print("{red}Bad args. from_block and to_block must be integers.{endc}")
 		return
+
+	if api_port is None:
+		api_port = get_ton_storage_port(local)
+		if api_port is None:
+			raise Exception(f'Failed to get Ton Storage API port and port was not provided')
 
 	# check ton storage is alive
 	local_ts_url = f"http://127.0.0.1:{api_port}"

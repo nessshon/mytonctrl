@@ -21,7 +21,7 @@ def get_block_from_toncenter(local, workchain: int, shard: int = -92233720368547
     if utime:
         url += f'&unixtime={utime}'
     local.add_log(f"Requesting block information from {url}", "debug")
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=3)
     if resp.status_code != 200:
         local.add_log(f"Toncenter API returned status code {resp.status_code}", "error")
         raise Exception(f"Toncenter API request failed: {resp.text}")
@@ -46,10 +46,10 @@ def download_master_blocks_bag(local, bag: dict, downloads_path: str):
         return
 
 
-def do_request(local, method: str, url: str, **kwargs) -> dict:
+def do_request(local, method: str, url: str, timeout: int = 3, **kwargs) -> dict:
     for _ in range(3):
         try:
-            return requests.request(method, url, **kwargs).json()
+            return requests.request(method, url, timeout=timeout, **kwargs).json()
         except Exception as e:
             local.add_log(f"Error making {method} request for {url}: {e}. Retrying", "error")
             time.sleep(5)
@@ -80,15 +80,15 @@ def download_bag(local, bag_id: str, downloads_path: str, download_all: bool = T
         resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
     while not resp['completed']:
         if resp['size'] == 0:
-            local.add_log(f"STARTING DOWNLOADING {bag_id}", "debug")
+            local.add_log(f"STARTING DOWNLOADING {bag_id}", "info")
             time.sleep(20)
             resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
             continue
         text = f'DOWNLOADING {bag_id} {round((resp["downloaded"] / resp["size"]) * 100)}% ({resp["downloaded"] / 10**6} / {resp["size"] / 10**6} MB), speed: {resp["download_speed"] / 10**6} MB/s'
-        local.add_log(text, "debug")
+        local.add_log(text, "info")
         time.sleep(20)
         resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
-    local.add_log(f"DOWNLOADED {bag_id}", "debug")
+    local.add_log(f"DOWNLOADED {bag_id}", "info")
     do_request(local, 'POST', local_ts_url + '/api/v1/remove', json={'bag_id': bag_id, 'with_files': False})
     return True
 
@@ -120,7 +120,7 @@ def parse_block_value(local, block: str):
     return int(data['seqno'])
 
 
-def download_blocks(local, downloads_path: str,  block_from: int, block_to: int = None, only_master: bool = False):
+def download_blocks(local, downloads_path: str, block_from: int, block_to: int = None, only_master: bool = False):
     url = 'https://archival-dump.ton.org/index/mainnet.json'
     if is_testnet(local):
         url = 'https://archival-dump.ton.org/index/testnet.json'

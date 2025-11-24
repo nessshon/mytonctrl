@@ -21,7 +21,7 @@ from mypylib.mypylib import (
 	Dict, int2ip
 )
 from mytoncore.utils import get_package_resource_path
-from mytonctrl.utils import get_current_user
+from mytonctrl.utils import get_current_user, is_hex
 from mytoninstaller.archive_blocks import run_process_hardforks, parse_block_value, download_bag, update_init_block, \
 	download_blocks_bag, download_master_blocks_bag
 from mytoninstaller.utils import StartValidator, StartMytoncore, start_service, stop_service, get_ed25519_pubkey, \
@@ -213,8 +213,11 @@ def download_archive_from_ts(local):
 	os.makedirs(states_dir, exist_ok=True)
 	os.makedirs(import_dir, exist_ok=True)
 
+	assert is_hex(state_bag['bag']), f"Invalid bag {state_bag}"
+
 	subprocess.run(f'mv {downloads_path}/{state_bag["bag"]}/state-*/* {states_dir}', shell=True)
 	for bag in block_bags + master_block_bags:
+		assert is_hex(bag['bag']), f"Invalid bag {bag}"
 		subprocess.run(f'mv {downloads_path}/{bag["bag"]}/*/*/* {import_dir}', shell=True)
 	subprocess.run(f'rm -rf {downloads_path}', shell=True)
 
