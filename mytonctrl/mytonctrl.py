@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf_8 -*-
 import base64
-import random
+import pathlib
 import subprocess
 import json
 import psutil
@@ -50,7 +50,8 @@ from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_conf
 
 import sys, getopt, os
 
-from mytoninstaller.config import get_own_ip
+from mytoninstaller.archive_blocks import download_blocks
+from mytoninstaller.utils import get_ton_storage_port
 
 
 def Init(local, ton, console, argv):
@@ -86,6 +87,7 @@ def Init(local, ton, console, argv):
 	console.AddItem("get", inject_globals(GetSettings), local.translate("get_cmd"))
 	console.AddItem("set", inject_globals(SetSettings), local.translate("set_cmd"))
 	console.AddItem("rollback", inject_globals(rollback_to_mtc1), local.translate("rollback_cmd"))
+	console.AddItem("download_archive_blocks", inject_globals(download_archive_blocks), local.translate("download_archive_blocks_cmd"))
 
 	#console.AddItem("xrestart", inject_globals(Xrestart), local.translate("xrestart_cmd"))
 	#console.AddItem("xlist", inject_globals(Xlist), local.translate("xlist_cmd"))
@@ -1125,6 +1127,45 @@ def SignShardOverlayCert(ton, args):
 def ImportShardOverlayCert(ton, args):
 	ton.ImportShardOverlayCert()
 #end define
+
+
+def download_archive_blocks(local, args: list):
+	if len(args) < 2:
+		color_print("{red}Bad args. Usage:{endc} download_archive_blocks [ton_storage_api_port] <download_path> <from_block_seqno> [to_block_seqno] [--only-master]")
+		return
+
+	only_master = pop_arg_from_args(args, '--only-master')
+	api_port = None
+	if args[0].isdigit():
+		api_port = args.pop(0)
+	path = pathlib.Path(args[0])
+	from_block = args[1]
+	to_block = args[2] if len(args) >= 3 else None
+	try:
+		from_block, to_block = int(from_block), int(to_block) if to_block else None
+	except:
+		color_print("{red}Bad args. from_block and to_block must be integers.{endc}")
+		return
+
+	if api_port is None:
+		api_port = get_ton_storage_port(local)
+		if api_port is None:
+			raise Exception(f'Failed to get Ton Storage API port and port was not provided')
+
+	# check ton storage is alive
+	local_ts_url = f"http://127.0.0.1:{api_port}"
+
+	try:
+		requests.get(local_ts_url + '/api/v1/list', timeout=3)
+	except:
+		color_print(f"{{red}}Error: cannot connect to ton-storage at 127.0.0.1:{api_port}. "
+					f"Make sure `ton_storage` daemon is running or install it via `installer enable TS`.{{endc}}")
+		return
+
+	local.buffer.ton_storage = Dict()
+	local.buffer.ton_storage.api_port = api_port
+	local.buffer.global_config_path = '/usr/bin/ton/global.config.json'
+	download_blocks(local, str(path.absolute()), from_block, to_block, only_master)
 
 
 ### Start of the program

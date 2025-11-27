@@ -1,9 +1,8 @@
-import datetime
 import os
 import os.path
 import sys
 import time
-import typing
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import psutil
 import base64
@@ -11,7 +10,6 @@ import subprocess
 import requests
 import random
 import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 from mypylib.mypylib import (
@@ -23,9 +21,11 @@ from mypylib.mypylib import (
 	Dict, int2ip
 )
 from mytoncore.utils import get_package_resource_path
-from mytonctrl.utils import get_current_user
+from mytonctrl.utils import get_current_user, is_hex
+from mytoninstaller.archive_blocks import run_process_hardforks, parse_block_value, download_bag, update_init_block, \
+	download_blocks_bag, download_master_blocks_bag
 from mytoninstaller.utils import StartValidator, StartMytoncore, start_service, stop_service, get_ed25519_pubkey, \
-	disable_service, is_testnet, get_block_from_toncenter
+	is_testnet, disable_service
 from mytoninstaller.config import SetConfig, GetConfig, get_own_ip, backup_config
 from mytoncore.utils import hex2b64
 
@@ -126,94 +126,6 @@ def FirstNodeSettings(local):
 	StartValidator(local)
 
 
-def download_blocks(local, bag: dict, downloads_path: str):
-	local.add_log(f"Downloading blocks from {bag['from']} to {bag['to']}", "info")
-	if not download_bag(local, bag['bag'], downloads_path):
-		local.add_log("Error downloading archive bag", "error")
-		return
-
-
-def download_master_blocks(local, bag: dict, downloads_path: str):
-	local.add_log(f"Downloading master blocks from {bag['from']} to {bag['to']}", "info")
-	if not download_bag(local, bag['bag'], downloads_path, download_all=False, download_file=lambda f: ':' not in f['name']):
-		local.add_log("Error downloading master bag", "error")
-		return
-
-
-def do_request(local, method: str, url: str, **kwargs) -> dict:
-	for _ in range(3):
-		try:
-			return requests.request(method, url, **kwargs).json()
-		except Exception as e:
-			local.add_log(f"Error making {method} request for {url}: {e}. Retrying", "error")
-			time.sleep(5)
-	raise Exception(f"Failed to make {method} request for {url}")
-
-
-def download_bag(local, bag_id: str, downloads_path: str, download_all: bool = True, download_file: typing.Callable = None):
-	indexes = []
-	local_ts_url = f"http://127.0.0.1:{local.buffer.ton_storage.api_port}"
-
-	resp = do_request(local, 'POST', local_ts_url + '/api/v1/add', json={'bag_id': bag_id, 'download_all': download_all, 'path': downloads_path})
-	if not resp['ok']:
-		local.add_log(f"Error adding bag: {resp}", "error")
-		return False
-	resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
-	if not download_all:
-		while not resp['header_loaded']:
-			time.sleep(1)
-			resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
-		for f in resp['files']:
-			if download_file(f):
-				indexes.append(f['index'])
-		resp = do_request(local, 'POST', local_ts_url + '/api/v1/add', json={'bag_id': bag_id, 'download_all': download_all, 'path': downloads_path, 'files': indexes})
-		if not resp['ok']:
-			local.add_log(f"Error adding bag: {resp}", "error")
-			return False
-		time.sleep(3)
-		resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
-	while not resp['completed']:
-		if resp['size'] == 0:
-			local.add_log(f"STARTING DOWNLOADING {bag_id}", "debug")
-			time.sleep(20)
-			resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
-			continue
-		text = f'DOWNLOADING {bag_id} {round((resp["downloaded"] / resp["size"]) * 100)}% ({resp["downloaded"] / 10**6} / {resp["size"] / 10**6} MB), speed: {resp["download_speed"] / 10**6} MB/s'
-		local.add_log(text, "debug")
-		time.sleep(20)
-		resp = do_request(local, 'GET', local_ts_url + f'/api/v1/details?bag_id={bag_id}')
-	local.add_log(f"DOWNLOADED {bag_id}", "debug")
-	do_request(local, 'POST', local_ts_url + '/api/v1/remove', json={'bag_id': bag_id, 'with_files': False})
-	return True
-
-
-def update_init_block(local, seqno: int):
-	local.add_log(f"Editing init block in {local.buffer.global_config_path}", "info")
-	with open(local.buffer.global_config_path, 'r') as f:
-		config = json.load(f)
-	if seqno != 0:
-		data = get_block_from_toncenter(local, workchain=-1, seqno=seqno)
-	else:
-		data = config['validator']['zero_state']
-	config['validator']['init_block']['seqno'] = seqno
-	config['validator']['init_block']['file_hash'] = data['file_hash']
-	config['validator']['init_block']['root_hash'] = data['root_hash']
-	with open(local.buffer.global_config_path, 'w') as f:
-		f.write(json.dumps(config, indent=4))
-	return True
-
-
-def parse_block_value(local, block: str):
-	if block is None:
-		return None
-	if block.isdigit():
-		return int(block)
-	dt = datetime.datetime.strptime(block, "%Y-%m-%d")
-	ts = int(dt.timestamp())
-	data = get_block_from_toncenter(local, workchain=-1, utime=ts)
-	return int(data['seqno'])
-
-
 def download_archive_from_ts(local):
 	if local.buffer.archive_blocks is None:
 		return
@@ -282,8 +194,8 @@ def download_archive_from_ts(local):
 
 	local.add_log(f"Downloading archive blocks. Rough estimate total blocks size is {int(estimated_size / 2**30)} GB", "info")
 	with ThreadPoolExecutor(max_workers=4) as executor:
-		futures = [executor.submit(download_blocks, local, bag, downloads_path) for bag in block_bags]
-		futures += [executor.submit(download_master_blocks, local, bag, downloads_path) for bag in master_block_bags]
+		futures = [executor.submit(download_blocks_bag, local, bag, downloads_path) for bag in block_bags]
+		futures += [executor.submit(download_master_blocks_bag, local, bag, downloads_path) for bag in master_block_bags]
 		for future in as_completed(futures):
 			try:
 				future.result()
@@ -301,11 +213,12 @@ def download_archive_from_ts(local):
 	os.makedirs(states_dir, exist_ok=True)
 	os.makedirs(import_dir, exist_ok=True)
 
+	assert is_hex(state_bag['bag']), f"Invalid bag {state_bag}"
+
 	subprocess.run(f'mv {downloads_path}/{state_bag["bag"]}/state-*/* {states_dir}', shell=True)
-	# subprocess.run(['rm', '-rf', f"{downloads_path}/{state_bag['bag']}"])
 	for bag in block_bags + master_block_bags:
+		assert is_hex(bag['bag']), f"Invalid bag {bag}"
 		subprocess.run(f'mv {downloads_path}/{bag["bag"]}/*/*/* {import_dir}', shell=True)
-		# subprocess.run(['rm', '-rf', f"{downloads_path}/{bag['bag']}"])
 	subprocess.run(f'rm -rf {downloads_path}', shell=True)
 
 	stop_service(local, "ton_storage")  # stop TS
@@ -328,28 +241,6 @@ def download_archive_from_ts(local):
 	mconfig = GetConfig(path=mconfig_path)
 	mconfig.importGc = True
 	SetConfig(path=mconfig_path, data=mconfig)
-
-
-def run_process_hardforks(local, from_seqno: int):
-	script_path = os.path.join(local.buffer.mtc_src_dir, 'mytoninstaller', 'scripts', 'process_hardforks.py')
-	log_path = "/tmp/process_hardforks_logs.txt"
-	log_file = open(log_path, "a")
-
-	p = subprocess.Popen([
-	        "python3", script_path,
-	        "--from-seqno", str(from_seqno),
-	        "--config-path", local.buffer.global_config_path,
-	        # "--bin", local.buffer.ton_bin_dir + "validator-engine-console/validator-engine-console",
-	        # "--client", local.buffer.keys_dir + "client",
-	        # "--server", local.buffer.keys_dir + "server.pub",
-	        # "--address", "127.0.0.1:"
-	    ],
-		stdout=log_file,
-		stderr=log_file,
-		stdin=subprocess.DEVNULL,
-		start_new_session=True  # run in background
-	)
-	local.add_log(f"process_hardforks process is running in background, PID: {p.pid}, log file: {log_path}", "info")
 
 
 def DownloadDump(local):

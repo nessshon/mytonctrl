@@ -7,6 +7,8 @@ import random
 import json
 import subprocess
 
+import requests
+
 from mypylib.mypylib import MyPyClass, run_as_root, color_print
 from mypyconsole.mypyconsole import MyPyConsole
 from mytoncore.utils import get_package_resource_path
@@ -14,7 +16,7 @@ from mytonctrl.utils import get_current_user, pop_user_from_args
 
 from mytoninstaller.config import GetLiteServerConfig, get_ls_proxy_config
 from mytoninstaller.node_args import get_node_args
-from mytoninstaller.utils import GetInitBlock
+from mytoninstaller.utils import GetInitBlock, get_ton_storage_port
 from mytoncore.utils import dict2b64, str2bool, b642dict, b642hex
 
 from mytoninstaller.settings import (
@@ -85,6 +87,7 @@ def Init(local, console):
 	console.AddItem("create_ls_proxy_config_file", inject_globals(create_ls_proxy_config_file), "Create ls-proxy config file")
 	console.AddItem("drvcf", inject_globals(DRVCF), "Dangerous recovery validator config file")
 	console.AddItem("setwebpass", inject_globals(SetWebPassword), "Set a password for the web admin interface")
+	console.AddItem("ton_storage_list", inject_globals(ton_storage_list), "Print result of /list method at Ton Storage API")
 
 	Refresh(local)
 #end define
@@ -196,6 +199,19 @@ def SetWebPassword(args):
 	args = ["python3", "/usr/src/mtc-jsonrpc/mtc-jsonrpc.py", "-p"]
 	subprocess.run(args)
 #end define
+
+
+def ton_storage_list(local, args: list):
+	if len(args) > 0:
+		api_port = int(args[0])
+	else:
+		api_port = get_ton_storage_port(local)
+		if api_port is None:
+			raise Exception(f'Failed to get Ton Storage API port and port was not provided. Use ton_storage_list [api_port]')
+	data = requests.get(f"http://127.0.0.1:{api_port}" + '/api/v1/list', timeout=3)
+	if data.status_code != 200:
+		raise Exception(f'Failed to get Ton Storage list: {data.text}')
+	print(json.dumps(data.json(), indent=4))
 
 
 def PrintLiteServerConfig(local, args):

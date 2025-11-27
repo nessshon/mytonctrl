@@ -2,6 +2,7 @@ import base64
 import json
 import time
 import subprocess
+import typing
 
 import requests
 from nacl.signing import SigningKey
@@ -68,21 +69,19 @@ def is_testnet(local):
 	return False
 
 
-def get_block_from_toncenter(local, workchain: int, shard: int = -9223372036854775808, seqno: int = None, utime: int = None):
-	url = f'https://toncenter.com/api/v2/lookupBlock?workchain={workchain}&shard={shard}'
-	if is_testnet(local):
-		url = url.replace('toncenter.com', 'testnet.toncenter.com')
-	if seqno:
-		url += f'&seqno={seqno}'
-	if utime:
-		url += f'&unixtime={utime}'
-	local.add_log(f"Requesting block information from {url}", "debug")
-	resp = requests.get(url)
-	if resp.status_code != 200:
-		local.add_log(f"Toncenter API returned status code {resp.status_code}", "error")
-		raise Exception(f"Toncenter API request failed: {resp.text}")
-	data = resp.json()
-	if not data['ok']:
-		local.add_log(f"Toncenter API returned error: {data.get('error', 'Unknown error')}", "error")
-		raise Exception(f"Toncenter API returned error: {data.get('error', 'Unknown error')}")
-	return data['result']
+def get_ton_storage_port(local) -> typing.Optional[int]:
+	p = subprocess.run(["systemctl", "cat", "ton_storage.service"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+					   timeout=3)
+	if p.returncode != 0:
+		local.add_log(f"Failed to get ton_storage.service", "error")
+		return None
+	p.output = p.stdout.decode("utf-8")
+	for line in p.output.splitlines():
+		if line.startswith('ExecStart'):
+			cmd = line.split()
+			if '-api' not in cmd:
+				local.add_log(f"Failed to find -api in ton_storage.service exec command", "error")
+				return None
+			return int(cmd[cmd.index('-api') + 1].split(':')[1])
+	local.add_log(f"Failed to find ExecStart in ton_storage.service", "error")
+	return None

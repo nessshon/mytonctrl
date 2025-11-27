@@ -594,6 +594,11 @@
 		"ru": "Показать конфиг сборки блоков",
 		"zh_TW": "顯示區塊彙編配置"
 	},
+	"download_archive_blocks_cmd": {
+		"en": "Download archive blocks from TON Storage",
+		"ru": "Скачать архивные блоки из TON Storage",
+		"zh_TW": "從 TON Storage 下載存檔區塊"
+	},
 	"000a": {
 		"en": "001",
 		"ru": "002",

@@ -650,6 +650,7 @@ def gc_import(local, ton):
     if not files:
         local.add_log("No files left to import", "debug")
         ton.local.db['importGc'] = False
+        ton.local.save()
         return
     try:
         status = ton.GetValidatorStatus()
@@ -657,17 +658,26 @@ def gc_import(local, ton):
     except Exception as e:
         local.add_log(f"Failed to get shardclientmasterchainseqno: {e}", "warning")
         return
-    removed = 0
-    for file in files:
-        file_seqno = int(file.split('.')[1])
-        if node_seqno > file_seqno + 101:
-            try:
-                os.remove(os.path.join(import_path, file))
-                removed += 1
-            except PermissionError:
-                local.add_log(f"Failed to remove file {file}: Permission denied", "error")
-                continue
-    local.add_log(f"Removed {removed} import files up to {node_seqno} seqno", "debug")
+    to_delete = []
+    to_delete_dirs = []
+    for root, dirs, files in os.walk(import_path):
+        if root != import_path and not dirs and not files:
+            to_delete_dirs.append(root)
+        for file in files:
+            file_seqno = int(file.split('.')[1])
+            if node_seqno > file_seqno + 101:
+                to_delete.append(os.path.join(root, file))
+    for file_path in to_delete:
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            local.add_log(f"Failed to remove file {file_path}: {e}", "error")
+    for dir_path in to_delete_dirs:
+        try:
+            os.rmdir(dir_path)
+        except Exception as e:
+            local.add_log(f"Failed to remove dir {dir_path}: {e}", "error")
+    local.add_log(f"Removed {len(to_delete)} import files and {len(to_delete_dirs)} import dirs up to {node_seqno} seqno", "debug")
 
 
 def backup_mytoncore_logs(local: MyPyClass, ton: MyTonCore):
@@ -742,8 +752,7 @@ def General(local):
     if ton.in_initial_sync():
         local.start_cycle(check_initial_sync, sec=120, args=(local, ton))
 
-    if ton.local.db.get('importGc'):
-        local.start_cycle(gc_import, sec=300, args=(local, ton))
+    local.start_cycle(gc_import, sec=600, args=(local, ton))
 
     thr_sleep()
 # end define
