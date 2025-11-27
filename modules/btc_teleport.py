@@ -232,5 +232,3 @@ LOG_FILE=/var/log/btc_teleport/btc_teleport.log
 
     def add_console_commands(self, console):
         console.AddItem("remove_btc_teleport", self.remove_btc_teleport, self.local.translate("remove_btc_teleport_cmd"))
-        console.AddItem("vote_offer_btc_teleport", self.vote_offer_btc_teleport, self.local.translate("vote_offer_btc_teleport_cmd"))
-        console.AddItem("print_offers_btc_teleport_list", self.print_offers_btc_teleport_list, self.local.translate("print_offers_btc_teleport_list_cmd"))
