@@ -2,6 +2,12 @@ import base64
 import json
 import re
 import subprocess
+try:
+    # Python 3.9+
+    from importlib.resources import files, as_file
+except ImportError:
+    # Python < 3.9
+    from importlib_resources import files, as_file
 
 
 def str2b64(s):
@@ -177,3 +183,8 @@ def shard_is_ancestor(parent: int, child: int) -> bool:
     y = _lower_bit64(uc)
     mask = (_bits_negate64(x) << 1) & _MASK64
     return x >= y and not ((up ^ uc) & mask)
+
+
+def get_package_resource_path(package: str, resource: str):
+    ref = files(package) / resource
+    return as_file(ref)

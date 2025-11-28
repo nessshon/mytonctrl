@@ -7,13 +7,12 @@ import hashlib
 import struct
 import psutil
 import subprocess
-import pkg_resources
 import requests
 from fastcrc import crc16
 
 from modules import MODES
 from modules.btc_teleport import BtcTeleportModule
-from mytoncore.utils import xhex2hex, ng2g
+from mytoncore.utils import xhex2hex, ng2g, get_package_resource_path
 from mytoncore.liteclient import LiteClient
 from mytoncore.validator_console import ValidatorConsole
 from mytoncore.fift import Fift
@@ -1115,9 +1114,9 @@ class MyTonCore():
 	def remove_proofs_from_complaint(self, input_file_name: str):
 		self.local.add_log("start remove_proofs_from_complaint function", "debug")
 		output_file_name = self.tempDir + "complaint-new.boc"
-		fift_script = pkg_resources.resource_filename('mytoncore', 'complaints/remove-proofs-v2.fif')
-		args = [fift_script, input_file_name, output_file_name]
-		result = self.fift.Run(args)
+		with get_package_resource_path('mytoncore', 'complaints/remove-proofs-v2.fif') as fift_script:
+			args = [fift_script, input_file_name, output_file_name]
+			result = self.fift.Run(args)
 		return output_file_name
 
 
@@ -1304,7 +1303,7 @@ class MyTonCore():
 		stake = self.local.db.get("stake")
 		usePool = self.using_pool()
 		useController = self.using_liquid_staking()
-		stakePercent = self.local.db.get("stakePercent", 99)
+		stakePercent = self.local.db.get("stakePercent", 100)
 		vconfig = self.GetValidatorConfig()
 		validators = vconfig.get("validators")
 		config17 = self.GetConfig17()
@@ -1343,6 +1342,8 @@ class MyTonCore():
 					stake = int(account.balance*sp)
 			elif len(vconfig.validators) > 0:
 				stake = int(account.balance*sp)
+			if stakePercent == 100:
+				stake -= 20
 
 		# Check if we have enough coins
 		if stake > config17["maxStake"]:

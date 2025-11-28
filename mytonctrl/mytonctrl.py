@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf_8 -*-
 import base64
-import random
+import pathlib
 import subprocess
 import json
 import psutil
 import inspect
-import pkg_resources
 import socket
 
 from functools import partial
@@ -43,6 +42,7 @@ from mytoncore.functions import (
 	GetSwapInfo,
 	GetBinGitHash,
 )
+from mytoncore.utils import get_package_resource_path
 from mytoncore.telemetry import is_host_virtual
 from mytonctrl.migrate import run_migrations
 from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_config, is_hex, GetColorInt, \
@@ -50,13 +50,14 @@ from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_conf
 
 import sys, getopt, os
 
-from mytoninstaller.config import get_own_ip
+from mytoninstaller.archive_blocks import download_blocks
+from mytoninstaller.utils import get_ton_storage_port
 
 
 def Init(local, ton, console, argv):
 	# Load translate table
-	translate_path = pkg_resources.resource_filename('mytonctrl', 'resources/translate.json')
-	local.init_translator(translate_path)
+	with get_package_resource_path('mytonctrl', 'resources/translate.json') as translate_path:
+		local.init_translator(translate_path)
 
 	# this function substitutes local and ton instances if function has this args
 	def inject_globals(func):
@@ -86,6 +87,7 @@ def Init(local, ton, console, argv):
 	console.AddItem("get", inject_globals(GetSettings), local.translate("get_cmd"))
 	console.AddItem("set", inject_globals(SetSettings), local.translate("set_cmd"))
 	console.AddItem("rollback", inject_globals(rollback_to_mtc1), local.translate("rollback_cmd"))
+	console.AddItem("download_archive_blocks", inject_globals(download_archive_blocks), local.translate("download_archive_blocks_cmd"))
 
 	#console.AddItem("xrestart", inject_globals(Xrestart), local.translate("xrestart_cmd"))
 	#console.AddItem("xlist", inject_globals(Xlist), local.translate("xlist_cmd"))
@@ -340,9 +342,9 @@ def Update(local, args):
 	repo = "mytonctrl"
 	author, repo, branch, _ = check_git(args, repo, "update")  # todo: implement --url for update
 	# Run script
-	update_script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/update.sh')
-	runArgs = ["bash", update_script_path, "-a", author, "-r", repo, "-b", branch]
-	exitCode = run_as_root(runArgs)
+	with get_package_resource_path('mytonctrl', 'scripts/update.sh') as update_script_path:
+		runArgs = ["bash", update_script_path, "-a", author, "-r", repo, "-b", branch]
+		exitCode = run_as_root(runArgs)
 	if exitCode == 0:
 		text = "Update - {green}OK{endc}"
 	else:
@@ -389,13 +391,12 @@ def Upgrade(local, ton, args: list):
 			return
 
 	# Run script
-	upgrade_script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/upgrade.sh')
-	if git_url:
-		runArgs = ["bash", upgrade_script_path, "-g", git_url, "-b", branch]
-	else:
-		runArgs = ["bash", upgrade_script_path, "-a", author, "-r", repo, "-b", branch]
-
-	exitCode = run_as_root(runArgs)
+	with get_package_resource_path('mytonctrl', 'scripts/upgrade.sh') as upgrade_script_path:
+		if git_url:
+			runArgs = ["bash", upgrade_script_path, "-g", git_url, "-b", branch]
+		else:
+			runArgs = ["bash", upgrade_script_path, "-a", author, "-r", repo, "-b", branch]
+		exitCode = run_as_root(runArgs)
 	if ton.using_validator():
 		upgrade_btc_teleport(local, ton)
 	if exitCode == 0:
@@ -456,19 +457,19 @@ def rollback_to_mtc1(local, ton,  args):
 	if os.path.exists(version_file_path):
 		os.remove(version_file_path)
 
-	rollback_script_path = pkg_resources.resource_filename('mytonctrl', 'migrations/roll_back_001.sh')
-	run_args = ["bash", rollback_script_path]
-	run_as_root(run_args)
+	with get_package_resource_path('mytonctrl', 'migrations/roll_back_001.sh') as rollback_script_path:
+		run_args = ["bash", rollback_script_path]
+		run_as_root(run_args)
 	local.exit()
 #end define
 
 def run_benchmark(ton, args):
 	timeout = 200
-	benchmark_script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/benchmark.sh')
-	etabar_script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/etabar.py')
-	benchmark_result_path = "/tmp/benchmark_result.json"
-	run_args = ["python3", etabar_script_path, str(timeout), benchmark_script_path, benchmark_result_path]
-	exit_code = run_as_root(run_args)
+	with get_package_resource_path('mytonctrl', 'scripts/benchmark.sh') as benchmark_script_path:
+		with get_package_resource_path('mytonctrl', 'scripts/etabar.py') as etabar_script_path:
+			benchmark_result_path = "/tmp/benchmark_result.json"
+			run_args = ["python3", etabar_script_path, str(timeout), benchmark_script_path, benchmark_result_path]
+			exit_code = run_as_root(run_args)
 	with open(benchmark_result_path, 'rt') as file:
 		text = file.read()
 	if exit_code != 0:
@@ -553,6 +554,11 @@ def check_slashed(local, ton):
 #end define
 
 def check_adnl(local, ton):
+	try:
+		config = ton.GetValidatorConfig()
+		if config.fullnodeslaves:
+			return
+	except: ...
 	from modules.utilities import UtilitiesModule
 	utils_module = UtilitiesModule(ton, local)
 	ok, error = utils_module.check_adnl_connection()
@@ -1087,10 +1093,10 @@ def Xrestart(inputArgs):
 	if len(inputArgs) < 2:
 		color_print("{red}Bad args. Usage:{endc} xrestart <timestamp> <args>")
 		return
-	xrestart_script_path = pkg_resources.resource_filename('mytonctrl', 'scripts/xrestart.py')
-	args = ["python3", xrestart_script_path]  # TODO: Fix path
-	args += inputArgs
-	exitCode = run_as_root(args)
+	with get_package_resource_path('mytonctrl', 'scripts/xrestart.py') as xrestart_script_path:
+		args = ["python3", xrestart_script_path]  # TODO: Fix path
+		args += inputArgs
+		exitCode = run_as_root(args)
 	if exitCode == 0:
 		text = "Xrestart - {green}OK{endc}"
 	else:
@@ -1121,6 +1127,45 @@ def SignShardOverlayCert(ton, args):
 def ImportShardOverlayCert(ton, args):
 	ton.ImportShardOverlayCert()
 #end define
+
+
+def download_archive_blocks(local, args: list):
+	if len(args) < 2:
+		color_print("{red}Bad args. Usage:{endc} download_archive_blocks [ton_storage_api_port] <download_path> <from_block_seqno> [to_block_seqno] [--only-master]")
+		return
+
+	only_master = pop_arg_from_args(args, '--only-master')
+	api_port = None
+	if args[0].isdigit():
+		api_port = args.pop(0)
+	path = pathlib.Path(args[0])
+	from_block = args[1]
+	to_block = args[2] if len(args) >= 3 else None
+	try:
+		from_block, to_block = int(from_block), int(to_block) if to_block else None
+	except:
+		color_print("{red}Bad args. from_block and to_block must be integers.{endc}")
+		return
+
+	if api_port is None:
+		api_port = get_ton_storage_port(local)
+		if api_port is None:
+			raise Exception(f'Failed to get Ton Storage API port and port was not provided')
+
+	# check ton storage is alive
+	local_ts_url = f"http://127.0.0.1:{api_port}"
+
+	try:
+		requests.get(local_ts_url + '/api/v1/list', timeout=3)
+	except:
+		color_print(f"{{red}}Error: cannot connect to ton-storage at 127.0.0.1:{api_port}. "
+					f"Make sure `ton_storage` daemon is running or install it via `installer enable TS`.{{endc}}")
+		return
+
+	local.buffer.ton_storage = Dict()
+	local.buffer.ton_storage.api_port = api_port
+	local.buffer.global_config_path = '/usr/bin/ton/global.config.json'
+	download_blocks(local, str(path.absolute()), from_block, to_block, only_master)
 
 
 ### Start of the program

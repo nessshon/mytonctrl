@@ -1,7 +1,7 @@
 import os
-import pkg_resources
 
 from mypylib.mypylib import MyPyClass
+from mytoncore.utils import get_package_resource_path
 from mytoncore.mytoncore import MyTonCore
 
 from mypylib.mypylib import (
@@ -13,9 +13,9 @@ from typing import Optional
 
 def migrate_to_version_1(local: MyPyClass, ton: MyTonCore):
     # get script path
-    migrate_script_path = pkg_resources.resource_filename('mytonctrl', 'migrations/migration_001.sh')
-    args = ["/bin/bash", migrate_script_path]
-    exit_code = run_as_root(args)
+    with get_package_resource_path('mytonctrl', 'migrations/migration_001.sh') as migrate_script_path:
+        args = ["/bin/bash", migrate_script_path]
+        exit_code = run_as_root(args)
     if exit_code != 0:
         raise RuntimeError(f'Failed to run migration error. Exit code: {exit_code}')
     return
