@@ -154,6 +154,7 @@ def download_archive_from_ts(local):
 	for _ in range(5):
 		try:
 			blocks_config = requests.get(url, timeout=3).json()
+			break
 		except Exception as e:
 			local.add_log(f"Failed to get blocks config: {e}. Retrying", "error")
 			time.sleep(10)
