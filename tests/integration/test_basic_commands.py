@@ -61,7 +61,7 @@ def test_update(cli, monkeypatch, mocker):
     exit_mock.assert_called_once()
 
 
-def test_upgrade_happy(cli, monkeypatch):
+def test_upgrade(cli, monkeypatch):
     monkeypatch.setattr(mytonctrl_module, "check_git", lambda args, default_repo, text: ("author", "repo", "branch", None))
 
     calls = {}
@@ -122,12 +122,17 @@ def test_upgrade_happy(cli, monkeypatch):
         teleport_calls["branch"] = branch
         teleport_calls["user"] = user
     monkeypatch.setattr(mytonctrl_module, "upgrade_btc_teleport", fake_upgrade_btc_teleport)
-    output = cli.execute("upgrade")
+    output = cli.execute("upgrade", no_color=True)
     assert teleport_calls.get("called") is True
     assert teleport_calls.get("reinstall") is False
-    assert "Upgrade - \x1b[32mOK\x1b" in output
+    assert "Upgrade - OK" in output
     assert "Error" not in output
     assert calls["run_args"] == ["bash", upg_path, "-a", "author", "-r", "repo", "-b", "branch"]
+
+    monkeypatch.setattr(mytonctrl_module, "run_as_root", lambda _: 1)
+    output = cli.execute("upgrade", no_color=True)
+    assert "Upgrade - Error" in output
+
 
 def test_upgrade_btc_teleport(cli, monkeypatch, mocker: MockerFixture):
     teleport_calls = {}
