@@ -192,6 +192,7 @@ def about(local, ton, args):
 	from modules import get_mode, get_mode_settings
 	if len(args) != 1:
 		color_print("{red}Bad args. Usage:{endc} about <mode_name>")
+		return
 	mode_name = args[0]
 	mode = get_mode(mode_name)
 	if mode is None:
@@ -1134,10 +1135,11 @@ def download_archive_blocks(local, args: list):
 		color_print("{red}Bad args. Usage:{endc} download_archive_blocks [ton_storage_api_port] <download_path> <from_block_seqno> [to_block_seqno] [--only-master]")
 		return
 
-	only_master = pop_arg_from_args(args, '--only-master')
+	only_master = '--only-master' in args
+	args.remove('--only-master') if only_master else None
 	api_port = None
 	if args[0].isdigit():
-		api_port = args.pop(0)
+		api_port = int(args.pop(0))
 	path = pathlib.Path(args[0])
 	from_block = args[1]
 	to_block = args[2] if len(args) >= 3 else None
