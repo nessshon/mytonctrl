@@ -2,9 +2,10 @@ import os
 import shutil
 import subprocess
 import time
+import typing
 
 from modules.module import MtcModule
-from mypylib.mypylib import color_print, ip2int, run_as_root, parse, MyPyClass
+from mypylib.mypylib import color_print, ip2int, run_as_root, parse
 from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user, pop_user_from_args
 from mytoninstaller.config import get_own_ip
@@ -12,7 +13,7 @@ from mytoninstaller.config import get_own_ip
 
 class BackupModule(MtcModule):
 
-    def create_keyring(self, dir_name):
+    def create_keyring(self, dir_name: str):
         keyring_dir = dir_name + '/keyring'
         self.ton.validatorConsole.Run(f'exportallprivatekeys {keyring_dir}')
 
@@ -34,10 +35,10 @@ class BackupModule(MtcModule):
         with get_package_resource_path('mytonctrl', 'scripts/create_backup.sh') as backup_script_path:
             return subprocess.run(["bash", backup_script_path, "-u", user] + args, timeout=5)
 
-    def create_backup(self, args):
+    def create_backup(self, args: list) -> typing.Union[int, None]:
         if len(args) > 3:
             color_print("{red}Bad args. Usage:{endc} create_backup [filename] [-u <user>]")
-            return
+            return None
         tmp_dir = self.create_tmp_ton_dir()
         command_args = ["-m", self.ton.local.buffer.my_work_dir, "-t", tmp_dir]
         user = pop_user_from_args(args)
@@ -51,7 +52,6 @@ class BackupModule(MtcModule):
             color_print("create_backup - {red}Error{endc}")
         shutil.rmtree(tmp_dir)
         return process.returncode
-    # end define
 
     @staticmethod
     def run_restore_backup(args, user: str = None):
@@ -94,7 +94,6 @@ class BackupModule(MtcModule):
             self.local.exit()
         else:
             color_print("restore_backup - {red}Error{endc}")
-    # end define
 
     def add_console_commands(self, console):
         console.AddItem("create_backup", self.create_backup, self.local.translate("create_backup_cmd"))

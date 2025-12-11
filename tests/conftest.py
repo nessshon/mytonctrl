@@ -23,12 +23,12 @@ class TestLocal(MyPyClass):
     def get_my_temp_dir(self):
         return ensure_dir(self._temp_dir)
 
-    def write_db(self, data):
-        self.buffer.old_db = Dict(self.db)
-
-    def load_db(self, db_path=False):
-        self.set_default_config()
-        return True
+    # def write_db(self, data):
+    #     self.buffer.old_db = Dict(self.db)
+    #
+    # def load_db(self, db_path=False):
+    #     self.set_default_config()
+    #     return True
 
     def write_log(self):
         pass
