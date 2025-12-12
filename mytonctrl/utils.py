@@ -2,6 +2,7 @@ import os
 import pwd
 import subprocess
 import time
+import typing
 
 from mypylib.mypylib import bcolors
 
@@ -63,7 +64,7 @@ def GetColorInt(data, border, logic, ending=None):
 def get_current_user():
     return pwd.getpwuid(os.getuid()).pw_name
 
-def pop_arg_from_args(args: list, arg_name: str):
+def pop_arg_from_args(args: typing.List[str], arg_name: str) -> typing.Optional[str]:
     if arg_name in args:
         arg_index = args.index(arg_name) + 1
         if arg_index >= len(args):
@@ -73,5 +74,5 @@ def pop_arg_from_args(args: list, arg_name: str):
         return value
     return None
 
-def pop_user_from_args(args: list):
+def pop_user_from_args(args: list) -> typing.Optional[str]:
     return pop_arg_from_args(args, '-u')
