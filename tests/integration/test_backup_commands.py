@@ -6,6 +6,7 @@ from pytest_mock import MockerFixture
 from modules.backups import BackupModule
 from modules import backups as backups_module
 from mypylib.mypylib import MyPyClass
+from mytoncore import get_package_resource_path
 from mytoncore.mytoncore import MyTonCore
 from pathlib import Path
 
@@ -87,7 +88,8 @@ def test_restore_backup(cli, ton, monkeypatch, tmp_path, mocker: MockerFixture):
     monkeypatch.setattr(BackupModule, "run_restore_backup", staticmethod(fake_run_restore_backup))
 
     current_user = get_current_user()
-    backup_path = Path(__file__).resolve().parents[2] / 'mytonctrl'/ 'scripts' / 'restore_backup.sh'
+    with get_package_resource_path('mytonctrl', 'scripts/restore_backup.sh') as backup_path:
+        assert backup_path.is_file()
 
     def assert_happy_run_args(outp: str, user: str):
         assert 'restore_backup - OK' in outp

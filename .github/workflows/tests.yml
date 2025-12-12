@@ -37,6 +37,10 @@ jobs:
         run: |
           ruff check mytonctrl  # wip adding ruff linting across the whole project
 
+      - name: Build project
+        run: |
+          pip install -U .
+
       - name: Run pytest
         run: |
-          pytest
+          pytest --import-mode=append  # to test built package

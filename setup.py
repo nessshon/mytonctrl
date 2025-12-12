@@ -14,7 +14,7 @@ setup(
 	author_email='igroman787',
 	name='mytonctrl',
 	version=version,
-	packages=find_packages('.', exclude=['tests']),
+	packages=find_packages('.', exclude=['tests', 'tests.*']),
 	install_requires=install_requires,
 	package_data={
 		'mytoninstaller.scripts': ['*.sh'],

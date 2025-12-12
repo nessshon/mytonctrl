@@ -7,6 +7,7 @@ import pytest
 import requests
 from pytest_mock import MockerFixture
 
+from mytoncore import get_package_resource_path
 from mytonctrl import mytonctrl as mytonctrl_module
 from mypylib.mypylib import MyPyClass
 from mypylib.mypylib import Dict
@@ -55,7 +56,8 @@ def test_update(cli, monkeypatch, mocker):
     monkeypatch.setattr(mytonctrl_module, "run_as_root", fake_run_as_root)
 
     output = cli.execute("update")
-    upd_path = Path(__file__).resolve().parents[2] / 'mytonctrl'/ 'scripts' / 'update.sh'
+    with get_package_resource_path('mytonctrl', 'scripts/update.sh') as upd_path:
+        assert upd_path.is_file()
     assert "Error" not in output
     assert calls["run_args"] == ['bash', upd_path, '-a', 'author', '-r', 'repo', '-b', 'branch']
     exit_mock.assert_called_once()
@@ -72,7 +74,8 @@ def test_upgrade(cli, monkeypatch):
     monkeypatch.setattr(mytonctrl_module, "run_as_root", fake_run_as_root)
     monkeypatch.setattr(mytonctrl_module, "get_clang_major_version", lambda: 16)
     monkeypatch.setattr(MyTonCore, "using_validator", lambda self: False)
-    upg_path = Path(__file__).resolve().parents[2] / "mytonctrl" / "scripts" / "upgrade.sh"
+    with get_package_resource_path('mytonctrl', 'scripts/upgrade.sh') as upg_path:
+        assert upg_path.is_file()
 
     def fake_GetSettings(self, name):
         if name == "liteClient":
