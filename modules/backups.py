@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import time
 import typing
+from typing import Optional
 
 from modules.module import MtcModule
 from mypylib.mypylib import color_print, ip2int, run_as_root, parse
@@ -20,6 +21,8 @@ class BackupModule(MtcModule):
     def create_tmp_ton_dir(self):
         result = self.ton.validatorConsole.Run("getconfig")
         text = parse(result, "---------", "--------")
+        if text is None:
+            raise Exception("Could not get config from validator-console")
         dir_name = self.ton.tempDir + f'/ton_backup_{int(time.time() * 1000)}'
         dir_name_db = dir_name + '/db'
         os.makedirs(dir_name_db)
@@ -29,7 +32,7 @@ class BackupModule(MtcModule):
         return dir_name
 
     @staticmethod
-    def run_create_backup(args, user: str = None):
+    def run_create_backup(args, user: Optional[str] = None):
         if user is None:
             user = get_current_user()
         with get_package_resource_path('mytonctrl', 'scripts/create_backup.sh') as backup_script_path:
@@ -54,7 +57,7 @@ class BackupModule(MtcModule):
         return process.returncode
 
     @staticmethod
-    def run_restore_backup(args, user: str = None):
+    def run_restore_backup(args, user: Optional[str] = None):
         if user is None:
             user = get_current_user()
         with get_package_resource_path('mytonctrl', 'scripts/restore_backup.sh') as restore_script_path:

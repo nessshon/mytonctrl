@@ -9,6 +9,7 @@ import psutil
 import subprocess
 import requests
 from fastcrc import crc16
+from typing import Optional
 
 from modules import MODES
 from modules.btc_teleport import BtcTeleportModule
@@ -37,27 +38,22 @@ from mypylib.mypylib import (
 class MyTonCore():
 	def __init__(self, local):
 		self.local = local
-		self.walletsDir = None
-		self.dbFile = None
-		self.contractsDir = None
-		self.poolsDir = None
-		self.tempDir = None
-		self.nodeName = None
+		self.walletsDir: Optional[str] = None
+		self.dbFile: Optional[str] = None
+		self.contractsDir: str
+		self.poolsDir: str
+		self.tempDir: str
+		self.nodeName: str
 
 		self.liteClient = LiteClient(self.local)
 		self.validatorConsole = ValidatorConsole(self.local)
 		self.fift = Fift(self.local)
 
 		self.Refresh()
-		self.Init()
-	#end define
 
-	def Init(self):
-		# Check all directorys
 		os.makedirs(self.walletsDir, exist_ok=True)
 		os.makedirs(self.contractsDir, exist_ok=True)
 		os.makedirs(self.poolsDir, exist_ok=True)
-	#end define
 
 	def Refresh(self):
 		if self.dbFile:
