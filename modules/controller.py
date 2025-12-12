@@ -106,9 +106,9 @@ class ControllerModule(MtcModule):
     def calculate_annual_controller_percentage(self, args):
         if not check_usage_args_min_max_len("calculate_annual_controller_percentage", args, min_len=0, max_len=1):
             return
-        try:
+        if args:
             percent_per_round = float(args[0])
-        except:
+        else:
             percent_per_round = self.ton.GetSettings("max_interest_percent")
         config15 = self.ton.GetConfig(15)
         roundPeriod = config15["validators_elected_for"]
