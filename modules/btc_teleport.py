@@ -1,9 +1,9 @@
-import json
 import os
 import subprocess
+from typing import Optional
 
 from modules.module import MtcModule
-from mypylib.mypylib import run_as_root, color_print, bcolors, print_table
+from mypylib.mypylib import run_as_root, color_print
 from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user
 
@@ -55,14 +55,14 @@ LOG_FILE=/var/log/btc_teleport/btc_teleport.log
         with open(env_path, 'w') as f:
             f.write(text)
 
-    def add_daemon(self, user: str = None):
+    def add_daemon(self, user: Optional[str] = None):
         start = f'{self.bin_dir}/oracle'
         if user is None:
             user = get_current_user()
         with get_package_resource_path('mytoninstaller', 'scripts/add2systemd.sh') as script_path:
             run_as_root(['bash', script_path, '-n', 'btc_teleport', '-u', user, '-g', user, '-s', start, '-w', self.bin_dir])
 
-    def install(self, branch: str, user: str = None):
+    def install(self, branch: str, user: Optional[str] = None):
         if user is None:
             user = get_current_user()
         with get_package_resource_path('mytonctrl', 'scripts/btc_teleport1.sh') as script_path:
@@ -72,7 +72,7 @@ LOG_FILE=/var/log/btc_teleport/btc_teleport.log
         with get_package_resource_path('mytonctrl', 'scripts/btc_teleport2.sh') as script_path:
             subprocess.run(["bash", script_path, "-s", self.src_dir])
 
-    def init(self, reinstall=False, branch: str = 'master', user: str = None):
+    def init(self, reinstall=False, branch: str = 'master', user: Optional[str] = None):
         if os.path.exists(self.src_dir) and not reinstall:
             return
         if self.ton.local.db.get('btcTeleportDisabled'):
