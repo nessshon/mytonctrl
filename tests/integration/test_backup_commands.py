@@ -79,7 +79,9 @@ def test_restore_backup(cli, ton, monkeypatch, tmp_path, mocker: MockerFixture):
     def fake_run_restore_backup(*args, **kwargs):
         # really do update db after restore
         with open(ton.local.buffer.db_path, 'w') as f:
-            f.write(json.dumps(ton.local.db | {"abc": 123}))
+            new_db = ton.local.db.copy()
+            new_db.update({"abc": 123})
+            f.write(json.dumps(new_db))
         return run_restore_backup(*args, **kwargs)
 
     monkeypatch.setattr(BackupModule, "run_restore_backup", staticmethod(fake_run_restore_backup))

@@ -17,7 +17,7 @@ def timestamp2utcdatetime(timestamp, format="%d.%m.%Y %H:%M:%S"):
 def GetItemFromList(data, index):
     try:
         return data[index]
-    except:
+    except IndexError:
         pass
 
 
