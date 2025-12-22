@@ -3,7 +3,9 @@ import subprocess
 from typing import Optional
 
 from modules.module import MtcModule
-from mypylib.mypylib import run_as_root, color_print
+
+from mytonctrl.console_cmd import add_command, check_usage_args_min_max_len
+from mypylib.mypylib import run_as_root
 from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user
 
@@ -91,8 +93,7 @@ LOG_FILE=/var/log/btc_teleport/btc_teleport.log
             return run_as_root(["bash", script_path] + args)
 
     def remove_btc_teleport(self, args: list):
-        if len(args) > 1:
-            color_print("{red}Bad args. Usage:{endc} remove_btc_teleport [--force]")
+        if not check_usage_args_min_max_len("remove_btc_teleport", args, min_len=0, max_len=1):
             return
         if '--force' not in args:
             if -1 < self.ton.GetValidatorIndex() < self.ton.GetConfig34()['mainValidators']:
@@ -104,4 +105,4 @@ LOG_FILE=/var/log/btc_teleport/btc_teleport.log
         self.local.add_log('Removed btc_teleport', 'info')
 
     def add_console_commands(self, console):
-        console.AddItem("remove_btc_teleport", self.remove_btc_teleport, self.local.translate("remove_btc_teleport_cmd"))
+        add_command(self.local, console, "remove_btc_teleport", self.remove_btc_teleport)

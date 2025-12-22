@@ -42,6 +42,7 @@ from mytoncore.functions import (
 )
 from mytoncore.utils import get_package_resource_path
 from mytoncore.telemetry import is_host_virtual
+from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_args_min_max_len
 from mytonctrl.migrate import run_migrations
 from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_config, is_hex, GetColorInt, \
 	pop_user_from_args, pop_arg_from_args
@@ -70,19 +71,19 @@ def Init(local, ton, console, argv):
 	console.debug = ton.GetSettings("debug")
 	console.local = local
 
-	console.AddItem("update", inject_globals(Update), local.translate("update_cmd"))
-	console.AddItem("upgrade", inject_globals(Upgrade), local.translate("upgrade_cmd"))
-	console.AddItem("installer", inject_globals(Installer), local.translate("installer_cmd"))
-	console.AddItem("status", inject_globals(PrintStatus), local.translate("status_cmd"))
-	console.AddItem("status_modes", inject_globals(mode_status), local.translate("status_modes_cmd"))
-	console.AddItem("status_settings", inject_globals(settings_status), local.translate("settings_status_cmd"))
-	console.AddItem("enable_mode", inject_globals(enable_mode), local.translate("enable_mode_cmd"))
-	console.AddItem("disable_mode", inject_globals(disable_mode), local.translate("disable_mode_cmd"))
-	console.AddItem("about", inject_globals(about), local.translate("about_cmd"))
-	console.AddItem("get", inject_globals(GetSettings), local.translate("get_cmd"))
-	console.AddItem("set", inject_globals(SetSettings), local.translate("set_cmd"))
-	console.AddItem("rollback", inject_globals(rollback_to_mtc1), local.translate("rollback_cmd"))
-	console.AddItem("download_archive_blocks", inject_globals(download_archive_blocks), local.translate("download_archive_blocks_cmd"))
+	add_command(local, console, "update", inject_globals(Update))
+	add_command(local, console, "upgrade", inject_globals(Upgrade))
+	add_command(local, console, "installer", inject_globals(Installer))
+	add_command(local, console, "status", inject_globals(PrintStatus))
+	add_command(local, console, "status_modes", inject_globals(mode_status))
+	add_command(local, console, "status_settings", inject_globals(settings_status))
+	add_command(local, console, "enable_mode", inject_globals(enable_mode))
+	add_command(local, console, "disable_mode", inject_globals(disable_mode))
+	add_command(local, console, "about", inject_globals(about))
+	add_command(local, console, "get", inject_globals(GetSettings))
+	add_command(local, console, "set", inject_globals(SetSettings))
+	add_command(local, console, "rollback", inject_globals(rollback_to_mtc1))
+	add_command(local, console, "download_archive_blocks", inject_globals(download_archive_blocks))
 
 	from modules.backups import BackupModule
 	module = BackupModule(ton, local)
@@ -144,7 +145,7 @@ def Init(local, ton, console, argv):
 		module = AlertBotModule(ton, local)
 		module.add_console_commands(console)
 
-	console.AddItem("benchmark", inject_globals(run_benchmark), local.translate("benchmark_cmd"))
+	add_command(local, console, "benchmark", inject_globals(run_benchmark))
 
 	# Process input parameters
 	opts, args = getopt.getopt(argv,"hc:w:",["config=","wallets="])
@@ -177,8 +178,7 @@ def Init(local, ton, console, argv):
 
 def about(local, ton, args):
 	from modules import get_mode, get_mode_settings
-	if len(args) != 1:
-		color_print("{red}Bad args. Usage:{endc} about <mode_name>")
+	if not check_usage_one_arg("about", args):
 		return
 	mode_name = args[0]
 	mode = get_mode(mode_name)
@@ -192,7 +192,6 @@ def about(local, ton, args):
 	print('Settings:', 'no' if len(mode_settings) == 0 else '')
 	for setting_name, setting in mode_settings.items():
 		color_print(f'  {{bold}}{setting_name}{{endc}}: {setting.description}.\n    Default value: {setting.default_value}')
-#end define
 
 
 def check_installer_user(local):
@@ -1012,22 +1011,18 @@ def GetColorTime(datetime, timestamp):
 #end define
 
 def GetSettings(ton, args):
-	try:
-		name = args[0]
-	except IndexError:
-		color_print("{red}Bad args. Usage:{endc} get <settings-name>")
+	if not check_usage_one_arg("get", args):
 		return
+	name = args[0]
 	result = ton.GetSettings(name)
 	print(json.dumps(result, indent=2))
 #end define
 
 def SetSettings(local, ton, args):
-	try:
-		name = args[0]
-		value = args[1]
-	except IndexError:
-		color_print("{red}Bad args. Usage:{endc} set <settings-name> <settings-value>")
+	if not check_usage_args_min_max_len("set", args, min_len=2, max_len=3):
 		return
+	name = args[0]
+	value = args[1]
 	if name == 'usePool' or name == 'useController':
 		mode_name = 'nominator-pool' if name == 'usePool' else 'liquid-staking'
 		color_print(f"{{red}} Error: set {name} ... is deprecated and does not work {{endc}}."
@@ -1052,26 +1047,21 @@ def SetSettings(local, ton, args):
 
 
 def enable_mode(local, ton, args):
-	try:
-		name = args[0]
-	except IndexError:
-		color_print("{red}Bad args. Usage:{endc} enable_mode <mode_name>")
+	if not check_usage_one_arg("enable_mode", args):
 		return
+	name = args[0]
 	ton.enable_mode(name)
 	color_print("enable_mode - {green}OK{endc}")
 	local.exit()
-#end define
+
 
 def disable_mode(local, ton, args):
-	try:
-		name = args[0]
-	except IndexError:
-		color_print("{red}Bad args. Usage:{endc} disable_mode <mode_name>")
+	if not check_usage_one_arg("disable_mode", args):
 		return
+	name = args[0]
 	ton.disable_mode(name)
 	color_print("disable_mode - {green}OK{endc}")
 	local.exit()
-#end define
 
 
 def download_archive_blocks(local, args: list):

@@ -5,6 +5,8 @@ from modules.btc_teleport import BtcTeleportModule
 from mypylib.mypylib import color_print, get_timestamp
 from modules.module import MtcModule
 from mytoncore import hex_shard_to_int, hex2b64
+from mytonctrl.console_cmd import check_usage_two_args, add_command, check_usage_args_min_max_len
+
 from mytonctrl.utils import timestamp2utcdatetime, GetColorInt, pop_arg_from_args, is_hex
 
 
@@ -16,8 +18,7 @@ class ValidatorModule(MtcModule):
     default_value = True
 
     def vote_offer(self, args):
-        if len(args) == 0:
-            color_print("{red}Bad args. Usage:{endc} vo <offer-hash>")
+        if not check_usage_args_min_max_len("vo", args, min_len=1, max_len=1000):
             return
         offers = self.ton.GetOffers()
         for offer_hash in args:
@@ -34,12 +35,10 @@ class ValidatorModule(MtcModule):
         color_print("VoteElectionEntry - {green}OK{endc}")
 
     def vote_complaint(self, args):
-        try:
-            election_id = args[0]
-            complaint_hash = args[1]
-        except:
-            color_print("{red}Bad args. Usage:{endc} vc <election-id> <complaint-hash>")
+        if not check_usage_two_args("vc", args):
             return
+        election_id = args[0]
+        complaint_hash = args[1]
         self.ton.VoteComplaint(election_id, complaint_hash)
         color_print("VoteComplaint - {green}OK{endc}")
 
@@ -159,8 +158,7 @@ class ValidatorModule(MtcModule):
             raise Exception(f'Failed to set collators list: {result}')
 
     def add_collator(self, args: list):
-        if len(args) < 2:
-            color_print("{red}Bad args. Usage:{endc} add_collator <adnl> <shard> [--self-collate <true/false>] [--select-mode <random/ordered/round_robin>]")
+        if not check_usage_args_min_max_len("add_collator", args, min_len=2, max_len=6):
             return
         adnl = args[0]
         shard = args[1]
@@ -202,8 +200,7 @@ class ValidatorModule(MtcModule):
         color_print("add_collator - {green}OK{endc}")
 
     def delete_collator(self, args: list):
-        if len(args) < 1:
-            color_print("{red}Bad args. Usage:{endc} delete_collator [shard] <adnl>")
+        if not check_usage_args_min_max_len("delete_collator", args, min_len=1, max_len=2):
             return
 
         shard_id = None
@@ -274,11 +271,11 @@ class ValidatorModule(MtcModule):
         color_print("reset_collators - {green}OK{endc}")
 
     def add_console_commands(self, console):
-        console.AddItem("vo", self.vote_offer, self.local.translate("vo_cmd"))
-        console.AddItem("ve", self.vote_election_entry, self.local.translate("ve_cmd"))
-        console.AddItem("vc", self.vote_complaint, self.local.translate("vc_cmd"))
-        console.AddItem("check_ef", self.check_efficiency, self.local.translate("check_ef_cmd"))
-        console.AddItem("add_collator", self.add_collator, self.local.translate("add_collator_cmd"))
-        console.AddItem("delete_collator", self.delete_collator, self.local.translate("delete_collator_cmd"))
-        console.AddItem("print_collators", self.print_collators, self.local.translate("print_collators_cmd"))
-        console.AddItem("reset_collators", self.reset_collators, self.local.translate("reset_collators_cmd"))
+        add_command(self.local, console, "vo", self.vote_offer)
+        add_command(self.local, console, "ve", self.vote_election_entry)
+        add_command(self.local, console, "vc", self.vote_complaint)
+        add_command(self.local, console, "check_ef", self.check_efficiency)
+        add_command(self.local, console, "add_collator", self.add_collator)
+        add_command(self.local, console, "delete_collator", self.delete_collator)
+        add_command(self.local, console, "print_collators", self.print_collators)
+        add_command(self.local, console, "reset_collators", self.reset_collators)

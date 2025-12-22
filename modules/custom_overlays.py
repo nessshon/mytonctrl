@@ -4,6 +4,7 @@ import requests
 from mypylib.mypylib import color_print
 from modules.module import MtcModule
 from mytoncore.utils import hex2base64
+from mytonctrl.console_cmd import add_command, check_usage_two_args, check_usage_one_arg
 
 
 class CustomOverlayModule(MtcModule):
@@ -48,8 +49,7 @@ class CustomOverlayModule(MtcModule):
         return result
 
     def add_custom_overlay(self, args):
-        if len(args) != 2:
-            color_print("{red}Bad args. Usage:{endc} add_custom_overlay <name> <path_to_config>")
+        if not check_usage_two_args("add_custom_overlay", args):
             return
         path = args[1]
         with open(path, 'r') as f:
@@ -74,8 +74,7 @@ class CustomOverlayModule(MtcModule):
             print(json.dumps(v, indent=4))
 
     def delete_custom_overlay(self, args):
-        if len(args) != 1:
-            color_print("{red}Bad args. Usage:{endc} delete_custom_overlay <name>")
+        if not check_usage_one_arg("delete_custom_overlay", args):
             return
         if '@validators' in self.ton.get_custom_overlays().get(args[0], {}):
             self.ton.delete_custom_overlay(args[0])
@@ -184,6 +183,6 @@ class CustomOverlayModule(MtcModule):
         return config.get(network)
 
     def add_console_commands(self, console):
-        console.AddItem("add_custom_overlay", self.add_custom_overlay, self.local.translate("add_custom_overlay_cmd"))
-        console.AddItem("list_custom_overlays", self.list_custom_overlays, self.local.translate("list_custom_overlays_cmd"))
-        console.AddItem("delete_custom_overlay", self.delete_custom_overlay, self.local.translate("delete_custom_overlay_cmd"))
+        add_command(self.local, console, "add_custom_overlay", self.add_custom_overlay)
+        add_command(self.local, console, "list_custom_overlays", self.list_custom_overlays)
+        add_command(self.local, console, "delete_custom_overlay", self.delete_custom_overlay)

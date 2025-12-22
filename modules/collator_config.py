@@ -3,6 +3,7 @@ import requests
 
 from mypylib.mypylib import color_print
 from modules.module import MtcModule
+from mytonctrl.console_cmd import add_command, check_usage_one_arg
 
 
 class CollatorConfigModule(MtcModule):
@@ -47,15 +48,14 @@ class CollatorConfigModule(MtcModule):
         return 'success' in result, result
 
     def set_collator_config(self, args):
-        if len(args) != 1:
-            color_print("{red}Bad args. Usage:{endc} set_collator_config <path/url>")
+        if not check_usage_one_arg("set_collation_config", args):
             return
         location = args[0]
         config = self.get_config(location)
         self.ton.set_collator_config(location)
         added, msg = self.add_collator_config_to_vc(config)
         if not added:
-            print(f'Failed to add collator config to validator console: {msg}')
+            print(f'Failed to add collation config to validator console: {msg}')
             color_print("set_collator_config - {red}ERROR{endc}")
             return
         color_print("set_collator_config - {green}OK{endc}")
@@ -86,6 +86,6 @@ class CollatorConfigModule(MtcModule):
         color_print("update_collator_config - {green}OK{endc}")
 
     def add_console_commands(self, console):
-        console.AddItem("set_collation_config", self.set_collator_config, self.local.translate("set_collation_config_cmd"))
-        console.AddItem("update_collation_config", self.update_collator_config, self.local.translate("update_collation_config_cmd"))
-        console.AddItem("print_collation_config", self.get_collator_config, self.local.translate("print_collation_config_cmd"))
+        add_command(self.local, console, "set_collation_config", self.set_collator_config)
+        add_command(self.local, console, "update_collation_config", self.update_collator_config)
+        add_command(self.local, console, "print_collation_config", self.get_collator_config)

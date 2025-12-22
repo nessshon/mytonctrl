@@ -73,6 +73,10 @@ def test_nw(cli, ton, monkeypatch):
 
 
 def test_aw(cli, ton, monkeypatch, mocker: MockerFixture):
+    # Bad args
+    output = cli.execute("aw", no_color=True)
+    assert "Bad args" in output
+
     get_local_wallet_mock = mocker.Mock()
     activate_wallet_mock = mocker.Mock()
     wallets_check_mock = mocker.Mock()
@@ -92,18 +96,7 @@ def test_aw(cli, ton, monkeypatch, mocker: MockerFixture):
     get_local_wallet_mock.reset_mock()
     activate_wallet_mock.reset_mock()
     wallets_check_mock.reset_mock()
-    output = cli.execute("aw all", no_color=True)
-
-    get_local_wallet_mock.assert_not_called()
-    activate_wallet_mock.assert_not_called()
-    wallets_check_mock.assert_called_once()
-    assert "ActivateWallet - OK" in output
-
-    # no args, same as all
-    get_local_wallet_mock.reset_mock()
-    activate_wallet_mock.reset_mock()
-    wallets_check_mock.reset_mock()
-    output = cli.execute("aw", no_color=True)
+    output = cli.execute("aw --all", no_color=True)
 
     get_local_wallet_mock.assert_not_called()
     activate_wallet_mock.assert_not_called()

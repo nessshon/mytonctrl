@@ -5,6 +5,7 @@ import requests
 from modules.module import MtcModule
 from mypylib.mypylib import get_timestamp, print_table, color_print
 from mytoncore import get_hostname, signed_int_to_hex64
+from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_two_args
 from mytonctrl.utils import timestamp2utcdatetime
 
 
@@ -333,15 +334,15 @@ Severity: <code>{alert.severity}</code>
         return self.get_alert_from_db(alert_name).get('active', False)
 
     def enable_alert(self, args):
-        if len(args) != 1:
-            raise Exception("Usage: enable_alert <alert_name>")
+        if not check_usage_one_arg("enable_alert", args):
+            return
         alert_name = args[0]
         self.set_alert_enabled(alert_name, True)
         color_print("enable_alert - {green}OK{endc}")
 
     def disable_alert(self, args):
-        if len(args) != 1:
-            raise Exception("Usage: disable_alert <alert_name>")
+        if not check_usage_one_arg("disable_alert", args):
+            return
         alert_name = args[0]
         self.set_alert_enabled(alert_name, False)
         color_print("disable_alert - {green}OK{endc}")
@@ -360,8 +361,8 @@ Severity: <code>{alert.severity}</code>
         self.send_message('Test alert')
 
     def setup_alert_bot(self, args):
-        if len(args) != 2:
-            raise Exception("Usage: setup_alert_bot <bot_token> <chat_id>")
+        if not check_usage_two_args("setup_alert_bot", args):
+            return
         self.token = args[0]
         self.chat_id = args[1]
         init_alerts()
@@ -602,8 +603,8 @@ Full bot documentation <a href="https://docs.ton.org/v3/guidelines/nodes/mainten
         self.local.try_function(self.check_online_collators)
 
     def add_console_commands(self, console):
-        console.AddItem("enable_alert", self.enable_alert, self.local.translate("enable_alert_cmd"))
-        console.AddItem("disable_alert", self.disable_alert, self.local.translate("disable_alert_cmd"))
-        console.AddItem("list_alerts", self.print_alerts, self.local.translate("list_alerts_cmd"))
-        console.AddItem("test_alert", self.test_alert, self.local.translate("test_alert_cmd"))
-        console.AddItem("setup_alert_bot", self.setup_alert_bot, self.local.translate("setup_alert_bot_cmd"))
+        add_command(self.local, console, "enable_alert", self.enable_alert)
+        add_command(self.local, console, "disable_alert", self.disable_alert)
+        add_command(self.local, console, "list_alerts", self.print_alerts)
+        add_command(self.local, console, "test_alert", self.test_alert)
+        add_command(self.local, console, "setup_alert_bot", self.setup_alert_bot)
