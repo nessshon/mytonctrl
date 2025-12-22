@@ -24,7 +24,7 @@ USAGES = {
     "delete_collator": "[shard] <adnl>",
     "print_collators": "[--json]",
     "nw": "[<workchain_id> <wallet_name> [<version>] [<subwallet_id>]]",
-    "aw": "[<wallet_name>|all]",
+    "aw": "<wallet_name>|--all",
     "iw": "<wallet_addr> <wallet_secret_key>",
     "swv": "<wallet_addr> <wallet_version>",
     "ew": "<wallet_name>",

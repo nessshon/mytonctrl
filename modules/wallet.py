@@ -45,10 +45,10 @@ class WalletModule(MtcModule):
                     self.ton.SendFile(wallet.bocFilePath, wallet)
 
     def activate_wallet(self, args):
-        if not check_usage_args_min_max_len("aw", args, min_len=0, max_len=1):
+        if not check_usage_one_arg("aw", args):
             return
-        wallet_name = args[0] if len(args) == 1 else "all"
-        if wallet_name == "all":
+        wallet_name = args[0]
+        if wallet_name == "--all":
             self._wallets_check()
         else:
             wallet = self.ton.GetLocalWallet(wallet_name)
