@@ -3,10 +3,11 @@ import subprocess
 from typing import Optional
 
 from modules.module import MtcModule
-from mypylib.mypylib import run_as_root, color_print, bcolors, print_table
+
 from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_args_min_max_len
-from mytonctrl.utils import get_current_user
+from mypylib.mypylib import run_as_root, color_print
 from mytoncore.utils import get_package_resource_path
+from mytonctrl.utils import get_current_user
 
 
 class BtcTeleportModule(MtcModule):
