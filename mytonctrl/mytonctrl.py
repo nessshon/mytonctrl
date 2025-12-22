@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf_8 -*-
 import base64
 import pathlib
 import subprocess
@@ -7,6 +5,9 @@ import json
 import psutil
 import inspect
 import socket
+import sys
+import getopt
+import os
 
 from functools import partial
 
@@ -23,21 +24,18 @@ from mypylib.mypylib import (
 	get_load_avg,
 	run_as_root,
 	time2human,
-	timeago,
-	timestamp2datetime,
 	get_timestamp,
 	print_table,
 	color_print,
 	color_text,
 	bcolors,
 	Dict,
-	MyPyClass, ip2int
+	MyPyClass
 )
 
 from mypyconsole.mypyconsole import MyPyConsole
 from mytoncore.mytoncore import MyTonCore
 from mytoncore.functions import (
-	Slashing,
 	GetMemoryInfo,
 	GetSwapInfo,
 	GetBinGitHash,
@@ -47,9 +45,6 @@ from mytoncore.telemetry import is_host_virtual
 from mytonctrl.migrate import run_migrations
 from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_config, is_hex, GetColorInt, \
 	pop_user_from_args, pop_arg_from_args
-
-import sys, getopt, os
-
 from mytoninstaller.archive_blocks import download_blocks
 from mytoninstaller.utils import get_ton_storage_port
 
@@ -88,12 +83,6 @@ def Init(local, ton, console, argv):
 	console.AddItem("set", inject_globals(SetSettings), local.translate("set_cmd"))
 	console.AddItem("rollback", inject_globals(rollback_to_mtc1), local.translate("rollback_cmd"))
 	console.AddItem("download_archive_blocks", inject_globals(download_archive_blocks), local.translate("download_archive_blocks_cmd"))
-
-	#console.AddItem("xrestart", inject_globals(Xrestart), local.translate("xrestart_cmd"))
-	#console.AddItem("xlist", inject_globals(Xlist), local.translate("xlist_cmd"))
-	#console.AddItem("gpk", inject_globals(GetPubKey), local.translate("gpk_cmd"))
-	#console.AddItem("ssoc", inject_globals(SignShardOverlayCert), local.translate("ssoc_cmd"))
-	#console.AddItem("isoc", inject_globals(ImportShardOverlayCert), local.translate("isoc_cmd"))
 
 	from modules.backups import BackupModule
 	module = BackupModule(ton, local)
@@ -180,12 +169,10 @@ def Init(local, ton, console, argv):
 				print ("Wallets path " + wallets  + " is not a directory")
 				sys.exit()
 			ton.walletsDir = wallets
-	#end for
 
 	local.db.config.logLevel = "debug" if console.debug else "info"
 	local.db.config.isLocaldbSaving = False
 	local.run()
-#end define
 
 
 def about(local, ton, args):
@@ -265,7 +252,7 @@ def GetAuthorRepoBranchFromArgs(args):
 def check_vport(local, ton):
 	try:
 		vconfig = ton.GetValidatorConfig()
-	except:
+	except Exception:
 		local.add_log("GetValidatorConfig error", "error")
 		return
 	addr = vconfig.addrs.pop()
@@ -524,7 +511,7 @@ def check_validator_balance(local, ton):
 		validator_wallet = ton.GetValidatorWallet()
 		validator_account = local.try_function(ton.GetAccount, args=[validator_wallet.addrB64])
 		if validator_account is None:
-			local.add_log(f"Failed to check validator wallet balance", "warning")
+			local.add_log("Failed to check validator wallet balance", "warning")
 			return
 		if validator_account.balance < 100:
 			print_warning(local, "validator_balance_warning")
@@ -559,7 +546,8 @@ def check_adnl(local, ton):
 		config = ton.GetValidatorConfig()
 		if config.fullnodeslaves:
 			return
-	except: ...
+	except Exception:
+		pass
 	from modules.utilities import UtilitiesModule
 	utils_module = UtilitiesModule(ton, local)
 	ok, error = utils_module.check_adnl_connection()
@@ -633,12 +621,12 @@ def PrintStatus(local, ton, args):
 	disks_load_avg = ton.GetStatistics("disksLoadAvg", statistics)
 	disks_load_percent_avg = ton.GetStatistics("disksLoadPercentAvg", statistics)
 
-	all_status = validator_status.is_working == True and validator_status.out_of_sync < 20
+	all_status = validator_status.is_working and validator_status.out_of_sync < 20
 
 	try:
 		vconfig = ton.GetValidatorConfig()
 		fullnode_adnl = base64.b64decode(vconfig.fullnode).hex().upper()
-	except:
+	except Exception:
 		fullnode_adnl = 'n/a'
 
 	if all_status:
@@ -782,11 +770,7 @@ def PrintLocalStatus(local, ton, adnlAddr, validatorIndex, validatorEfficiency, 
 	# Disks status
 	disksLoad_data = list()
 	for key, item in disksLoadAvg.items():
-		diskLoad1_text = bcolors.green_text(item[0])  # TODO: this variables is unused. Why?
-		diskLoad5_text = bcolors.green_text(item[1])  # TODO: this variables is unused. Why?
 		diskLoad15_text = bcolors.green_text(item[2])
-		diskLoadPercent1_text = GetColorInt(disksLoadPercentAvg[key][0], 80, logic="less", ending="%")  # TODO: this variables is unused. Why?
-		diskLoadPercent5_text = GetColorInt(disksLoadPercentAvg[key][1], 80, logic="less", ending="%")  # TODO: this variables is unused. Why?
 		diskLoadPercent15_text = GetColorInt(disksLoadPercentAvg[key][2], 80, logic="less", ending="%")
 		buff = "{}, {}"
 		buff = "{}{}:[{}{}{}]{}".format(bcolors.cyan, key, bcolors.default, buff, bcolors.cyan, bcolors.endc)
@@ -941,8 +925,8 @@ def PrintLocalStatus(local, ton, adnlAddr, validatorIndex, validatorEfficiency, 
 	print()
 #end define
 
-def GetColorStatus(input):
-	if input == True:
+def GetColorStatus(status: bool):
+	if status:
 		result = bcolors.green_text("working")
 	else:
 		result = bcolors.red_text("not working")
@@ -1030,7 +1014,7 @@ def GetColorTime(datetime, timestamp):
 def GetSettings(ton, args):
 	try:
 		name = args[0]
-	except:
+	except IndexError:
 		color_print("{red}Bad args. Usage:{endc} get <settings-name>")
 		return
 	result = ton.GetSettings(name)
@@ -1041,7 +1025,7 @@ def SetSettings(local, ton, args):
 	try:
 		name = args[0]
 		value = args[1]
-	except:
+	except IndexError:
 		color_print("{red}Bad args. Usage:{endc} set <settings-name> <settings-value>")
 		return
 	if name == 'usePool' or name == 'useController':
@@ -1070,7 +1054,7 @@ def SetSettings(local, ton, args):
 def enable_mode(local, ton, args):
 	try:
 		name = args[0]
-	except:
+	except IndexError:
 		color_print("{red}Bad args. Usage:{endc} enable_mode <mode_name>")
 		return
 	ton.enable_mode(name)
@@ -1081,52 +1065,12 @@ def enable_mode(local, ton, args):
 def disable_mode(local, ton, args):
 	try:
 		name = args[0]
-	except:
+	except IndexError:
 		color_print("{red}Bad args. Usage:{endc} disable_mode <mode_name>")
 		return
 	ton.disable_mode(name)
 	color_print("disable_mode - {green}OK{endc}")
 	local.exit()
-#end define
-
-
-def Xrestart(inputArgs):
-	if len(inputArgs) < 2:
-		color_print("{red}Bad args. Usage:{endc} xrestart <timestamp> <args>")
-		return
-	with get_package_resource_path('mytonctrl', 'scripts/xrestart.py') as xrestart_script_path:
-		args = ["python3", xrestart_script_path]  # TODO: Fix path
-		args += inputArgs
-		exitCode = run_as_root(args)
-	if exitCode == 0:
-		text = "Xrestart - {green}OK{endc}"
-	else:
-		text = "Xrestart - {red}Error{endc}"
-	color_print(text)
-#end define
-
-def Xlist(args):
-	color_print("Xlist - {green}OK{endc}")
-#end define
-
-def GetPubKey(ton, args):
-	adnlAddr = ton.GetAdnlAddr()
-	pubkey = ton.GetPubKey(adnlAddr)
-	print("pubkey:", pubkey)
-#end define
-
-def SignShardOverlayCert(ton, args):
-	try:
-		adnl = args[0]
-		pubkey = args[0]
-	except:
-		color_print("{red}Bad args. Usage:{endc} ssoc <pubkey>")
-		return
-	ton.SignShardOverlayCert(adnl, pubkey)
-#end define
-
-def ImportShardOverlayCert(ton, args):
-	ton.ImportShardOverlayCert()
 #end define
 
 
@@ -1145,22 +1089,22 @@ def download_archive_blocks(local, args: list):
 	to_block = args[2] if len(args) >= 3 else None
 	try:
 		from_block, to_block = int(from_block), int(to_block) if to_block else None
-	except:
+	except ValueError:
 		color_print("{red}Bad args. from_block and to_block must be integers.{endc}")
 		return
 
 	if api_port is None:
 		api_port = get_ton_storage_port(local)
 		if api_port is None:
-			raise Exception(f'Failed to get Ton Storage API port and port was not provided')
+			raise Exception('Failed to get Ton Storage API port and port was not provided')
 
 	# check ton storage is alive
 	local_ts_url = f"http://127.0.0.1:{api_port}"
 
 	try:
 		requests.get(local_ts_url + '/api/v1/list', timeout=3)
-	except:
-		color_print(f"{{red}}Error: cannot connect to ton-storage at 127.0.0.1:{api_port}. "
+	except Exception as e:
+		color_print(f"{{red}}Error: cannot connect to ton-storage at 127.0.0.1:{api_port}: {type(e)}: {e}. "
 					f"Make sure `ton_storage` daemon is running or install it via `installer enable TS`.{{endc}}")
 		return
 

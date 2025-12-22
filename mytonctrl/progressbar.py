@@ -57,7 +57,7 @@ class EtaBar:
 		indent_len = 0
 		cycles = int(self.timeout / self.sleep_time)
 		for cycle in range(cycles):
-			if self.thread.is_alive() == False:
+			if not self.thread.is_alive():
 				break
 			sleep(self.sleep_time)
 			if indent_len == self.toolbar_width:

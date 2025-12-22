@@ -14,7 +14,7 @@ args = ["bash", script]
 process = bar.run(run, args, stdin=PIPE, stdout=PIPE, stderr=PIPE, timeout=timeout)
 exit_code = -1
 output = "process is None"
-if process != None:
+if process is not None:
 	exit_code = process.returncode
 	stdout = process.stdout.decode("utf-8")
 	stderr = process.stderr.decode("utf-8")

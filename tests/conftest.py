@@ -23,12 +23,15 @@ class TestLocal(MyPyClass):
     def get_my_temp_dir(self):
         return ensure_dir(self._temp_dir)
 
-    def write_db(self, data):
-        self.buffer.old_db = Dict(self.db)
+    def self_test(self):
+        pass
 
-    def load_db(self, db_path=False):
-        self.set_default_config()
-        return True
+    # def write_db(self, data):
+    #     self.buffer.old_db = Dict(self.db)
+    #
+    # def load_db(self, db_path=False):
+    #     self.set_default_config()
+    #     return True
 
     def write_log(self):
         pass
@@ -95,11 +98,15 @@ class MyMyPyConsole(MyPyConsole):
 
 
 @pytest.fixture()
-def cli(local, ton, monkeypatch) -> ConsoleProtocol:
+def cli(local, ton) -> ConsoleProtocol:
     console = MyMyPyConsole()
     console.start_function = None  # todo: do not forget about start function
-
+    mp = pytest.MonkeyPatch()
+    mp.setattr(MyTonCore, "using_pool", lambda self: True)
+    mp.setattr(MyTonCore, "using_nominator_pool", lambda self: True)
+    mp.setattr(MyTonCore, "using_single_nominator", lambda self: True)
     Init(local, ton, console, argv=[])
+    mp.undo()
     console.debug = True
     # console.Run()
     return console
