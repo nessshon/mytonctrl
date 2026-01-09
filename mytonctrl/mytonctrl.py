@@ -50,6 +50,9 @@ from mytoninstaller.archive_blocks import download_blocks
 from mytoninstaller.utils import get_ton_storage_port
 
 
+CLANG_VERSION_REQUIRED = 21
+
+
 def Init(local, ton, console, argv):
 	# Load translate table
 	with get_package_resource_path('mytonctrl', 'resources/translate.json') as translate_path:
@@ -370,8 +373,8 @@ def Upgrade(local, ton, args: list):
 	ton.SetSettings("validatorConsole", validatorConsole)
 
 	clang_version = get_clang_major_version()
-	if clang_version is None or clang_version < 16:
-		text = f"{{red}}WARNING: THIS UPGRADE WILL MOST PROBABLY FAIL DUE TO A WRONG CLANG VERSION: {clang_version}, REQUIRED VERSION IS 16. RECOMMENDED TO EXIT NOW AND UPGRADE CLANG AS PER INSTRUCTIONS: https://gist.github.com/neodix42/e4b1b68d2d5dd3dec75b5221657f05d7{{endc}}\n"
+	if clang_version is None or clang_version < CLANG_VERSION_REQUIRED:
+		text = f"{{red}}WARNING: THIS UPGRADE WILL MOST PROBABLY FAIL DUE TO A WRONG CLANG VERSION: {clang_version}, REQUIRED VERSION IS {CLANG_VERSION_REQUIRED}. RECOMMENDED TO EXIT NOW AND UPGRADE CLANG AS PER INSTRUCTIONS: https://gist.github.com/neodix42/24d6a401e928f7e895fcc8e7b7c5c24a{{endc}}\n"
 		color_print(text)
 		if input("Continue with upgrade anyway? [Y/n]\n").strip().lower() not in ('y', ''):
 			print('aborted.')
