@@ -72,7 +72,7 @@ def test_upgrade(cli, monkeypatch):
         return 0
 
     monkeypatch.setattr(mytonctrl_module, "run_as_root", fake_run_as_root)
-    monkeypatch.setattr(mytonctrl_module, "get_clang_major_version", lambda: 16)
+    monkeypatch.setattr(mytonctrl_module, "get_clang_major_version", lambda: 21)
     monkeypatch.setattr(MyTonCore, "using_validator", lambda self: False)
     with get_package_resource_path('mytonctrl', 'scripts/upgrade.sh') as upg_path:
         assert upg_path.is_file()
@@ -98,7 +98,7 @@ def test_upgrade(cli, monkeypatch):
     assert captured_settings["liteClient"]["liteServer"]["pubkeyPath"] == "/var/ton-work/keys/liteserver.pub"
     assert calls["run_args"] == ["bash", upg_path, "-a", "author", "-r", "repo", "-b", "branch"]
 
-    # clang version is < 16, abort
+    # clang version is < 21, abort
     calls = {}
     monkeypatch.setattr(mytonctrl_module, "get_clang_major_version", lambda: 14)
     monkeypatch.setattr('builtins.input', lambda _: "n")
@@ -106,7 +106,7 @@ def test_upgrade(cli, monkeypatch):
     assert "aborted." in output
     assert not calls
 
-    # clang version is < 16, proceed
+    # clang version is < 21, proceed
     monkeypatch.setattr(mytonctrl_module, "get_clang_major_version", lambda: 14)
     monkeypatch.setattr('builtins.input', lambda _: "y")
     output = cli.execute("upgrade")
@@ -115,7 +115,7 @@ def test_upgrade(cli, monkeypatch):
     assert calls["run_args"] == ["bash", upg_path, "-a", "author", "-r", "repo", "-b", "branch"]
 
     # call upgrade_btc_teleport if using validator
-    monkeypatch.setattr(mytonctrl_module, "get_clang_major_version", lambda: 16)
+    monkeypatch.setattr(mytonctrl_module, "get_clang_major_version", lambda: 21)
     calls = {}
     monkeypatch.setattr(MyTonCore, "using_validator", lambda self: True)
     teleport_calls = {}

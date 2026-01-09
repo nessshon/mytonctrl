@@ -45,9 +45,12 @@ from mytoncore.telemetry import is_host_virtual
 from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_args_min_max_len
 from mytonctrl.migrate import run_migrations
 from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_config, is_hex, GetColorInt, \
-	pop_user_from_args, pop_arg_from_args
+	pop_user_from_args, pop_arg_from_args, get_clang_major_version, get_os_version
 from mytoninstaller.archive_blocks import download_blocks
 from mytoninstaller.utils import get_ton_storage_port
+
+
+CLANG_VERSION_REQUIRED = 21
 
 
 def Init(local, ton, console, argv):
@@ -370,8 +373,8 @@ def Upgrade(local, ton, args: list):
 	ton.SetSettings("validatorConsole", validatorConsole)
 
 	clang_version = get_clang_major_version()
-	if clang_version is None or clang_version < 16:
-		text = f"{{red}}WARNING: THIS UPGRADE WILL MOST PROBABLY FAIL DUE TO A WRONG CLANG VERSION: {clang_version}, REQUIRED VERSION IS 16. RECOMMENDED TO EXIT NOW AND UPGRADE CLANG AS PER INSTRUCTIONS: https://gist.github.com/neodix42/e4b1b68d2d5dd3dec75b5221657f05d7{{endc}}\n"
+	if clang_version is None or clang_version < CLANG_VERSION_REQUIRED:
+		text = f"{{red}}WARNING: THIS UPGRADE WILL MOST PROBABLY FAIL DUE TO A WRONG CLANG VERSION: {clang_version}, REQUIRED VERSION IS {CLANG_VERSION_REQUIRED}. RECOMMENDED TO EXIT NOW AND UPGRADE CLANG AS PER INSTRUCTIONS: https://gist.github.com/neodix42/24d6a401e928f7e895fcc8e7b7c5c24a{{endc}}\n"
 		color_print(text)
 		if input("Continue with upgrade anyway? [Y/n]\n").strip().lower() not in ('y', ''):
 			print('aborted.')
@@ -398,37 +401,6 @@ def upgrade_btc_teleport(local, ton, reinstall=False, branch: str = 'master', us
 	from modules.btc_teleport import BtcTeleportModule
 	module = BtcTeleportModule(ton, local)
 	local.try_function(module.init, args=[reinstall, branch, user])
-
-
-def get_clang_major_version():
-	try:
-		process = subprocess.run(["clang", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-								 text=True, timeout=3)
-		if process.returncode != 0:
-			return None
-
-		output = process.stdout
-
-		lines = output.strip().split('\n')
-		if not lines:
-			return None
-
-		first_line = lines[0]
-		if "clang version" not in first_line:
-			return None
-
-		version_part = first_line.split("clang version")[1].strip()
-		major_version = version_part.split('.')[0]
-
-		major_version = ''.join(c for c in major_version if c.isdigit())
-
-		if not major_version:
-			return None
-
-		return int(major_version)
-	except Exception as e:
-		print(f"Error checking clang version: {type(e)}: {e}")
-		return None
 
 
 def rollback_to_mtc1(local, ton,  args):
@@ -555,7 +527,14 @@ def check_adnl(local, ton):
 		print_warning(local, error)
 #end define
 
-def warnings(local, ton):
+def check_ubuntu_version(local: MyPyClass):
+	distro, ver = get_os_version()
+	if distro == 'ubuntu':
+		if ver not in ['22.04', '24.04']:
+			warning = local.translate("ubuntu_version_warning").format(ver)
+			print_warning(local, warning)
+
+def warnings(local: MyPyClass, ton: MyTonCore):
 	local.try_function(check_disk_usage, args=[local, ton])
 	local.try_function(check_sync, args=[local, ton])
 	local.try_function(check_adnl, args=[local, ton])
@@ -563,8 +542,7 @@ def warnings(local, ton):
 	local.try_function(check_vps, args=[local, ton])
 	local.try_function(check_tg_channel, args=[local, ton])
 	local.try_function(check_slashed, args=[local, ton])
-#end define
-
+	local.try_function(check_ubuntu_version, args=[local])
 
 def CheckTonUpdate(local):
 	git_path = "/usr/src/ton"
