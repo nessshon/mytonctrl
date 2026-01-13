@@ -8,7 +8,7 @@ from mytonctrl import mytonctrl
 
 @pytest.fixture(autouse=True)
 def before_test(monkeypatch):
-    monkeypatch.setattr(mytonctrl, 'CheckMytonctrlUpdate', lambda *_: None)
+    monkeypatch.setattr(mytonctrl, 'check_mytonctrl_update', lambda *_: None)
     monkeypatch.setattr(mytonctrl, 'check_installer_user', lambda *_: None)
     monkeypatch.setattr(mytonctrl, 'check_vport', lambda *_: None)
 
@@ -96,11 +96,11 @@ def test_check_validator_balance(cli, monkeypatch, mocker: MockerFixture):
 
 
 def test_check_vps(cli, monkeypatch):
-    monkeypatch.setattr(mytonctrl, 'is_host_virtual', lambda *_: {'virtual': True})
+    monkeypatch.setattr('mytonctrl.mytonctrl.is_host_virtual', lambda : {'virtual': True, 'product_name': 'VirtualBox'})
     output = cli.run_pre_up()
     assert 'Virtualization detected' in output
 
-    monkeypatch.setattr(mytonctrl, 'is_host_virtual', lambda *_: {'virtual': False})
+    monkeypatch.setattr('mytonctrl.mytonctrl.is_host_virtual', lambda : {'virtual': False})
     output = cli.run_pre_up()
     assert 'Virtualization detected' not in output
 

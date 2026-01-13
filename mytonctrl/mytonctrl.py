@@ -214,7 +214,7 @@ def check_installer_user(local):
 
 def pre_up(local: MyPyClass, ton: MyTonCore):
 	try:
-		CheckMytonctrlUpdate(local)
+		check_mytonctrl_update(local)
 		check_installer_user(local)
 		check_vport(local, ton)
 		warnings(local, ton)
@@ -446,12 +446,11 @@ def run_benchmark(ton, args):
 	print_table(table)
 #end define
 
-def CheckMytonctrlUpdate(local):
+def check_mytonctrl_update(local):
 	git_path = local.buffer.my_dir
 	result = check_git_update(git_path)
 	if result is True:
 		color_print(local.translate("mytonctrl_update_available"))
-#end define
 
 def print_warning(local, warning_name: str):
 	color_print("============================================================================================")
