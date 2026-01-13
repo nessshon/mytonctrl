@@ -112,9 +112,9 @@ def CreateLocalConfig(local, initBlock, localConfigPath=defaultLocalConfigPath):
 def get_own_ip():
 	pat = re.compile(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)(\.(?!$)|$)){4}$")
 	requests.packages.urllib3.util.connection.HAS_IPV6 = False
-	ip = requests.get("https://ifconfig.me/ip").text
+	ip = requests.get("https://ifconfig.me/ip", timeout=3).text
 	if not pat.fullmatch(ip):
-		ip = requests.get("https://ipinfo.io/ip").text
+		ip = requests.get("https://ipinfo.io/ip", timeout=3).text
 		if not pat.fullmatch(ip):
 			raise Exception('Cannot get own IP address')
 	return ip

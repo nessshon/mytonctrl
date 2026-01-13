@@ -112,7 +112,7 @@ class PrometheusModule(MtcModule):
         self.local.try_function(self.get_validator_status_metrics, args=[metrics])
         self.local.try_function(self.get_validator_validation_metrics, args=[metrics])
         self.local.try_function(self.get_node_stats_metrics, args=[metrics])
-        requests.post(url, data='\n'.join(metrics).encode())
+        requests.post(url, data='\n'.join(metrics).encode(), timeout=3)
 
     def add_console_commands(self, console):
         ...

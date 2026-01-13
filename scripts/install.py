@@ -18,7 +18,7 @@ def get_archive_ttl_message(answers: dict):
         url = f'https://toncenter.com/api/v2/getBlockHeader?workchain=-1&shard={-2**63}&seqno={seqno}'
         if answers['network'] == 'Testnet':
             url = url.replace('toncenter.com', 'testnet.toncenter.com')
-        data = requests.get(url).json()
+        data = requests.get(url, timeout=3).json()
         if not data['ok']:
             raise Exception(f'Failed to get block: {data}')
         utime = int(data['result']['gen_utime'])

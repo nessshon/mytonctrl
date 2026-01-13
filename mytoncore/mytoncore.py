@@ -1250,7 +1250,7 @@ class MyTonCore():
 		url = self.local.db.get("duplicateApiUrl", default_url)
 		if url == None:
 			return False
-		result = requests.post(url=url, json=data)
+		result = requests.post(url=url, json=data, timeout=3)
 		if result.status_code != 200:
 			self.local.add_log(f'Failed to send boc to toncenter: {result.content}', 'info')
 			return False
