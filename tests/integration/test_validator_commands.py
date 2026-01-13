@@ -204,9 +204,8 @@ def test_add_collator(cli, ton, monkeypatch, mocker: MockerFixture):
         }]
     }
 
-    with pytest.raises(Exception) as e:
-        cli.execute("add_collator test_adnl 0:8000000000000000", no_color=True)
-    assert "already exists" in str(e)
+    output = cli.execute("add_collator test_adnl 0:8000000000000000", no_color=True)
+    assert "already exists" in output
     get_collators_mock.assert_called_once()
     set_collators_mock.assert_not_called()
 
@@ -421,8 +420,7 @@ def test_reset_collators(cli, ton, monkeypatch, mocker: MockerFixture):
     }
     validator_console_mock.Run.return_value = "error: failed to clear"
 
-    with pytest.raises(Exception) as e:
-        cli.execute("reset_collators", no_color=True)
-    assert "Failed to reset collators list" in str(e)
+    output = cli.execute("reset_collators", no_color=True)
+    assert "Failed to reset collators list" in output
     validator_console_mock.Run.assert_called_once_with('clear-collators-list')
     get_collators_mock.assert_called_once()
