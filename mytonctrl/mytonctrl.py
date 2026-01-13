@@ -70,7 +70,7 @@ def Init(local, ton, console, argv):
 
 	# Create user console
 	console.name = "MyTonCtrl"
-	console.startFunction = inject_globals(PreUp)
+	console.startFunction = inject_globals(pre_up)
 	console.debug = ton.GetSettings("debug")
 	console.local = local
 
@@ -212,13 +212,14 @@ def check_installer_user(local):
 #end define
 
 
-def PreUp(local: MyPyClass, ton: MyTonCore):
-	CheckMytonctrlUpdate(local)
-	check_installer_user(local)
-	check_vport(local, ton)
-	warnings(local, ton)
-	# CheckTonUpdate()
-#end define
+def pre_up(local: MyPyClass, ton: MyTonCore):
+	try:
+		check_mytonctrl_update(local)
+		check_installer_user(local)
+		check_vport(local, ton)
+		warnings(local, ton)
+	except Exception as e:
+		local.add_log(f'PreUp error: {e}', 'error')
 
 
 def Installer(args):
@@ -445,12 +446,11 @@ def run_benchmark(ton, args):
 	print_table(table)
 #end define
 
-def CheckMytonctrlUpdate(local):
+def check_mytonctrl_update(local):
 	git_path = local.buffer.my_dir
 	result = check_git_update(git_path)
 	if result is True:
 		color_print(local.translate("mytonctrl_update_available"))
-#end define
 
 def print_warning(local, warning_name: str):
 	color_print("============================================================================================")

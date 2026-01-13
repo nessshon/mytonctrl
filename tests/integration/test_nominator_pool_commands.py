@@ -49,10 +49,9 @@ def test_new_pool(cli, ton, monkeypatch, mocker: MockerFixture):
     output = cli.execute(f"new_pool {pool_name} 5.5 10 10000 1000", no_color=True)
     assert 'CreatePool warning: Pool already exists' in output
 
-    with pytest.raises(Exception) as e:
-        cli.execute(f"new_pool pool2 5.5 10 10000 1000")
+    output = cli.execute(f"new_pool pool2 5.5 10 10000 1000", no_color=True)
     assert os.path.isfile(addr_file)
-    assert 'Pool with the same parameters already exists' in str(e)
+    assert 'Pool with the same parameters already exists' in output
 
 
 def test_activate_pool(cli, ton, monkeypatch, mocker: MockerFixture):
@@ -90,9 +89,8 @@ def test_activate_pool(cli, ton, monkeypatch, mocker: MockerFixture):
 
     # empty account
     account.status = "empty"
-    with pytest.raises(Exception) as e:
-        cli.execute(f"activate_pool {pool_name}")
-    assert "account status is empty" in str(e)
+    output = cli.execute(f"activate_pool {pool_name}")
+    assert "account status is empty" in output
 
     # already active account
     account.status = "active"

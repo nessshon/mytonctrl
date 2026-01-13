@@ -115,5 +115,5 @@ def cli(local, ton) -> TestMyPyConsole:
     mp.setattr(MyTonCore, "using_single_nominator", lambda self: True)
     Init(local, ton, console, argv=[])
     mp.undo()
-    console.debug = True
+    # console.debug = True
     return console

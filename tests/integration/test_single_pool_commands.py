@@ -49,10 +49,9 @@ def test_new_single_pool(cli, ton, monkeypatch, mocker: MockerFixture):
     assert "create_single_pool warning: Pool already exists" in output
     assert os.path.isfile(addr_file)
 
-    with pytest.raises(Exception) as e:
-        cli.execute(f"new_single_pool pool2 {owner_address}")
+    output = cli.execute(f"new_single_pool pool2 {owner_address}")
     assert os.path.isfile(addr_file)
-    assert 'Pool with the same parameters already exists' in str(e)
+    assert 'Pool with the same parameters already exists' in output
 
 
 def test_activate_single_pool(cli, ton, monkeypatch, mocker: MockerFixture):
