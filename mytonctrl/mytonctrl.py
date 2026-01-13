@@ -70,7 +70,7 @@ def Init(local, ton, console, argv):
 
 	# Create user console
 	console.name = "MyTonCtrl"
-	console.startFunction = inject_globals(PreUp)
+	console.startFunction = inject_globals(pre_up)
 	console.debug = ton.GetSettings("debug")
 	console.local = local
 
@@ -212,13 +212,14 @@ def check_installer_user(local):
 #end define
 
 
-def PreUp(local: MyPyClass, ton: MyTonCore):
-	CheckMytonctrlUpdate(local)
-	check_installer_user(local)
-	check_vport(local, ton)
-	warnings(local, ton)
-	# CheckTonUpdate()
-#end define
+def pre_up(local: MyPyClass, ton: MyTonCore):
+	try:
+		CheckMytonctrlUpdate(local)
+		check_installer_user(local)
+		check_vport(local, ton)
+		warnings(local, ton)
+	except Exception as e:
+		local.add_log(f'PreUp error: {e}', 'error')
 
 
 def Installer(args):
