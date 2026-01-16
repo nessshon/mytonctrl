@@ -4,6 +4,10 @@ from mytoncore import b642hex, signed_int_to_hex64, shard_prefix_len, hex_shard_
 from mytonctrl.console_cmd import check_usage_args_min_len, add_command, check_usage_no_args, check_usage_args_lens
 from mytonctrl.utils import pop_arg_from_args
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mytoncore import MyTonCore
+
 
 class CollatorModule(MtcModule):
 
@@ -83,7 +87,7 @@ class CollatorModule(MtcModule):
         if not check_usage_args_lens("stop_collator", args, [0, 2]):
             return
         if not args:
-            text = f"{{red}}WARNING: This action will stop and delete all local collation broadcasts from this node for all shards.{{endc}}\n"
+            text = "{red}WARNING: This action will stop and delete all local collation broadcasts from this node for all shards.{endc}\n"
             color_print(text)
             if input("Continue anyway? [Y/n]\n").strip().lower() not in ('y', ''):
                 print('aborted.')
@@ -134,7 +138,7 @@ class CollatorModule(MtcModule):
     def add_validator_to_collation_wl(self, args: list):
         if not check_usage_args_min_len("add_validator_to_collation_wl", args, 1):
             return
-        self.ton.validatorConsole.Run(f"collator-whitelist-enable 1")
+        self.ton.validatorConsole.Run("collator-whitelist-enable 1")
         self.local.add_log("Collation whitelist enabled")
         for adnl_addr in args:
             result = self.ton.validatorConsole.Run(f"collator-whitelist-add {adnl_addr}")
@@ -154,7 +158,7 @@ class CollatorModule(MtcModule):
     def disable_collation_validator_wl(self, args: list):
         if not check_usage_no_args("disable_collation_wl", args):
             return
-        result = self.ton.validatorConsole.Run(f"collator-whitelist-enable 0")
+        result = self.ton.validatorConsole.Run("collator-whitelist-enable 0")
         if 'success' not in result:
             raise Exception(f'Failed to disable collation validator whitelist: {result}')
         color_print("disable_collation_validator_wl - {green}OK{endc}")
@@ -167,8 +171,8 @@ class CollatorModule(MtcModule):
     @classmethod
     def check_enable(cls, ton: "MyTonCore"):
         if ton.using_validator():
-            raise Exception(f'Cannot enable collator mode while validator mode is enabled. '
-                            f'Use `disable_mode validator` first.')
+            raise Exception('Cannot enable collator mode while validator mode is enabled. '
+                            'Use `disable_mode validator` first.')
 
     def check_disable(self):
         have_collators_text = 'has active collator working and ' if self.get_collators() else ''

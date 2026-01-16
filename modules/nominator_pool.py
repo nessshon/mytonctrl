@@ -88,7 +88,7 @@ class NominatorPoolModule(PoolModule):
         bocPath = self.ton.local.buffer.my_temp_dir + wallet.name + "validator-deposit-query.boc"
         fiftScript = self.ton.contractsDir + "nominator-pool/func/validator-deposit.fif"
         args = [fiftScript, bocPath]
-        result = self.ton.fift.Run(args)
+        self.ton.fift.Run(args)
         resultFilePath = self.ton.SignBocWithWallet(wallet, bocPath, pool_addr, amount)
         self.ton.SendFile(resultFilePath, wallet)
 

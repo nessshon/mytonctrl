@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 
 from mypylib.mypylib import MyPyClass
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mytoncore import MyTonCore
+
 
 class MtcModule(ABC):
 

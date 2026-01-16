@@ -36,12 +36,12 @@ class CollatorConfigModule(MtcModule):
         else:
             config = CollatorConfigModule.check_config_file(path)
         if config is None:
-            raise Exception(f'Failed to get config')
+            raise Exception('Failed to get config')
         return config
 
     def add_collator_config_to_vc(self, config: dict):
-        self.local.add_log(f"Adding collator options config to validator console", "debug")
-        path = self.ton.tempDir + f'/collator_config.json'
+        self.local.add_log("Adding collator options config to validator console", "debug")
+        path = self.ton.tempDir + '/collator_config.json'
         with open(path, 'w') as f:
             json.dump(config, f)
         result = self.ton.validatorConsole.Run(f"setcollatoroptionsjson {path}")
@@ -63,7 +63,7 @@ class CollatorConfigModule(MtcModule):
     def get_collator_config(self, args):
         location = self.ton.get_collator_config_location()
         print(f'Collator config location: {location}')
-        path = self.ton.tempDir + f'/current_collator_config.json'
+        path = self.ton.tempDir + '/current_collator_config.json'
         output = self.ton.validatorConsole.Run(f'getcollatoroptionsjson {path}')
         if 'saved config to' not in output:
             print(f'Failed to get collator config: {output}')
@@ -71,7 +71,7 @@ class CollatorConfigModule(MtcModule):
             return
         with open(path, 'r') as f:
             config = json.load(f)
-        print(f'Collator config:')
+        print('Collator config:')
         print(json.dumps(config, indent=4))
         color_print("get_collator_config - {green}OK{endc}")
 

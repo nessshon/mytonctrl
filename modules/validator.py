@@ -9,6 +9,10 @@ from mytonctrl.console_cmd import check_usage_two_args, add_command, check_usage
 
 from mytonctrl.utils import timestamp2utcdatetime, GetColorInt, pop_arg_from_args, is_hex
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mytoncore import MyTonCore
+
 
 class ValidatorModule(MtcModule):
 
@@ -111,11 +115,11 @@ class ValidatorModule(MtcModule):
     @classmethod
     def check_enable(cls, ton: "MyTonCore"):
         if ton.using_liteserver():
-            raise Exception(f'Cannot enable validator mode while liteserver mode is enabled. '
-                            f'Use `disable_mode liteserver` first.')
+            raise Exception('Cannot enable validator mode while liteserver mode is enabled. '
+                            'Use `disable_mode liteserver` first.')
         if ton.using_collator():
-            raise Exception(f'Cannot enable validator mode while collator mode is enabled. '
-                            f'Use `disable_mode collator` first.')
+            raise Exception('Cannot enable validator mode while collator mode is enabled. '
+                            'Use `disable_mode collator` first.')
         BtcTeleportModule(ton, ton.local).init()
 
     @staticmethod

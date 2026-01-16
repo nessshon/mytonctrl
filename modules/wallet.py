@@ -4,7 +4,7 @@ import os
 from modules.module import MtcModule
 from mypylib.mypylib import color_print, print_table
 from mytonctrl.console_cmd import (check_usage_no_args, check_usage_one_arg, check_usage_two_args,
-    add_command, check_usage_args_len, check_usage_args_min_len, check_usage_args_min_max_len, check_usage_args_lens
+    add_command, check_usage_args_len, check_usage_args_min_len, check_usage_args_lens
 )
 
 

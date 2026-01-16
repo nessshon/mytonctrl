@@ -138,9 +138,9 @@ class UtilitiesModule(MtcModule):
                 isPassed = item.get("isPassed")
                 if "hash" not in args:
                     hash = self.reduct(hash)
-                if isPassed == True:
+                if isPassed:
                     isPassed = bcolors.green_text("true")
-                if isPassed == False:
+                if isPassed is False:
                     isPassed = bcolors.red_text("false")
                 table += [[hash, item.config.id, votedValidators, wl, approvedPercent_text, isPassed]]
             print_table(table)
@@ -315,7 +315,7 @@ class UtilitiesModule(MtcModule):
                     pubkey = self.reduct(pubkey)
                 if "wallet" not in args:
                     walletAddr = self.reduct(walletAddr)
-                if "offline" in args and online != False:
+                if "offline" in args and online:
                     continue
                 if online:
                     online = bcolors.green_text("true")

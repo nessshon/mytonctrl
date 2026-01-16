@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 from modules.collator import CollatorModule
 from modules.module import MtcModule
-from modules.pool import PoolModule
 from modules.nominator_pool import NominatorPoolModule
 from modules.single_pool import SingleNominatorModule
 from modules.validator import ValidatorModule
