@@ -37,7 +37,6 @@ def FirstNodeSettings(local):
 	local.add_log("start FirstNodeSettings fuction", "debug")
 
 	# Создать переменные
-	user = local.buffer.user
 	vuser = local.buffer.vuser
 	ton_work_dir = local.buffer.ton_work_dir
 	ton_db_dir = local.buffer.ton_db_dir
@@ -86,7 +85,7 @@ def FirstNodeSettings(local):
 	if archive_ttl == -1:
 		archive_ttl = 10**9
 		state_ttl = 10**9
-		ttl_cmd += f' --permanent-celldb'
+		ttl_cmd += ' --permanent-celldb'
 	if state_ttl is not None:
 		ttl_cmd += f' --state-ttl {state_ttl}'
 	ttl_cmd += f' --archive-ttl {archive_ttl}'
@@ -96,7 +95,7 @@ def FirstNodeSettings(local):
 
 	if local.buffer.add_shard is not None:
 		add_shard = local.buffer.add_shard
-		cmd += f' -M'
+		cmd += ' -M'
 		for shard in add_shard.split():
 			cmd += f' --add-shard {shard}'
 
@@ -204,7 +203,7 @@ def download_archive_from_ts(local):
 				local.add_log(f"Error while downloading blocks: {e}", "error")
 				return
 
-	local.add_log(f"Downloading blocks is completed, moving files", "info")
+	local.add_log("Downloading blocks is completed, moving files", "info")
 
 	archive_dir = local.buffer.ton_db_dir + 'archive/'
 	import_dir = local.buffer.ton_db_dir + 'import/'
@@ -236,7 +235,7 @@ def download_archive_from_ts(local):
 	if c['validator']['hardforks'] and c['validator']['hardforks'][-1]['seqno'] > block_from:
 		run_process_hardforks(local, block_from)
 
-	local.add_log(f"Changing permissions on imported files", "info")
+	local.add_log("Changing permissions on imported files", "info")
 	subprocess.run(["chmod", "o+w", import_dir])
 	mconfig_path = local.buffer.mconfig_path
 	mconfig = GetConfig(path=mconfig_path)
@@ -318,7 +317,6 @@ def FirstMytoncoreSettings(local):
 	os.makedirs(mconfigDir, exist_ok=True)
 
 	# create variables
-	src_dir = local.buffer.src_dir
 	ton_bin_dir = local.buffer.ton_bin_dir
 	ton_src_dir = local.buffer.ton_src_dir
 
@@ -364,7 +362,6 @@ def EnableValidatorConsole(local):
 	user = local.buffer.user
 	vuser = local.buffer.vuser
 	cport = local.buffer.cport
-	src_dir = local.buffer.src_dir
 	ton_db_dir = local.buffer.ton_db_dir
 	ton_bin_dir = local.buffer.ton_bin_dir
 	vconfig_path = local.buffer.vconfig_path
@@ -404,7 +401,6 @@ def EnableValidatorConsole(local):
 	process = subprocess.run(args, stdout=subprocess.PIPE)
 	output = process.stdout.decode("utf-8")
 	output_arr = output.split(' ')
-	client_key_hex = output_arr[0]
 	client_key_b64 = output_arr[1].replace('\n', '')
 
 	# chown 1
@@ -469,7 +465,6 @@ def EnableLiteServer(local):
 	user = local.buffer.user
 	vuser = local.buffer.vuser
 	lport = local.buffer.lport
-	src_dir = local.buffer.src_dir
 	ton_db_dir = local.buffer.ton_db_dir
 	keys_dir = local.buffer.keys_dir
 	ton_bin_dir = local.buffer.ton_bin_dir
@@ -626,7 +621,7 @@ def EnableJsonRpc(local):
 def tha_exists():
 	try:
 		resp = requests.get('http://127.0.0.1:8801/healthcheck', timeout=3)
-	except:
+	except Exception:
 		return False
 	if resp.status_code == 200 and resp.text == '"OK"':
 		return True
@@ -1060,7 +1055,7 @@ def ConfigureFromBackup(local):
 		vconfig = GetConfig(path=vconfig_path)
 		try:
 			node_ip = int2ip(vconfig['addrs'][0]['ip'])
-		except:
+		except Exception:
 			local.add_log("Can't get ip from validator", "error")
 			return
 		set_external_ip(local, node_ip)
