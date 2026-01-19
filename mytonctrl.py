@@ -6,6 +6,7 @@
 import os
 import sys
 import subprocess
+from mytonctrl.mytonctrl import run_migrations
 
 requirements_path = "/usr/src/mytonctrl/requirements.txt"
 if os.path.isfile(requirements_path):
@@ -15,8 +16,6 @@ if os.path.isfile(requirements_path):
 
 sys.path.insert(0, '/usr/bin/mytonctrl')  # Add path to mytonctrl module
 
-
-from mytonctrl.mytonctrl import run_migrations
 
 if __name__ == '__main__':
     print('Found new version of mytonctrl! Migrating!')

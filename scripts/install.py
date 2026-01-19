@@ -75,7 +75,8 @@ def validate_digits_or_empty(value):
 
 def validate_state_ttl(value, archive_ttl):
     v = validate_digits_or_empty(value)
-    if v is not True: return v
+    if v is not True:
+        return v
     if archive_ttl and value and int(value) > int(archive_ttl):
         return "State TTL cannot be greater than blocks TTL"
     return True

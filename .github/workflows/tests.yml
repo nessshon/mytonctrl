@@ -35,7 +35,7 @@ jobs:
 
       - name: Run Ruff
         run: |
-          ruff check mytonctrl modules mytoninstaller mytoncore # wip adding ruff linting across the whole project
+          ruff check
 
       - name: Build project
         run: |
