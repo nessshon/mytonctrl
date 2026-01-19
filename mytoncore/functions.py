@@ -6,14 +6,12 @@ import sys
 import psutil
 import time
 import json
-import base64
 import requests
 import subprocess
 
 from mypylib import MyPyClass
 from mytoncore.mytoncore import MyTonCore
 from mytonctrl.utils import fix_git_config
-from mytoninstaller.config import GetConfig
 from mypylib.mypylib import (
     b2mb,
     get_timestamp,
@@ -22,7 +20,7 @@ from mypylib.mypylib import (
     get_load_avg,
     thr_sleep,
 )
-from mytoncore.telemetry import *
+from mytoncore.telemetry import GetMemoryInfo, GetSwapInfo, GetUname, GetValidatorProcessInfo, get_db_stats, get_cpu_name, is_host_virtual, get_validator_disk_name, get_pings_values
 from mytoninstaller.node_args import get_node_args
 
 
@@ -519,7 +517,7 @@ def Telemetry(local, ton):
     liteUrl_default = "https://telemetry.toncenter.com/report_status"
     liteUrl = local.db.get("telemetryLiteUrl", liteUrl_default)
     output = json.dumps(data)
-    resp = requests.post(liteUrl, data=output, timeout=3)
+    requests.post(liteUrl, data=output, timeout=3)
 # end define
 
 
@@ -556,7 +554,7 @@ def OverlayTelemetry(local, ton):
     overlayUrl_default = "https://telemetry.toncenter.com/report_overlays"
     overlayUrl = local.db.get("overlayTelemetryUrl", overlayUrl_default)
     output = json.dumps(data)
-    resp = requests.post(overlayUrl, data=output, timeout=3)
+    requests.post(overlayUrl, data=output, timeout=3)
 # end define
 
 
@@ -621,7 +619,7 @@ def ScanLiteServers(local, ton):
         try:
             ton.liteClient.Run("last", index=index)
             result.append(index)
-        except:
+        except Exception:
             pass
     # end for
 

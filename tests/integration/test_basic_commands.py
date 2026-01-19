@@ -7,7 +7,7 @@ import pytest
 import requests
 from pytest_mock import MockerFixture
 
-from mytoncore import get_package_resource_path
+from mytoncore.utils import get_package_resource_path
 from mytonctrl import mytonctrl as mytonctrl_module
 from mypylib.mypylib import MyPyClass
 from mypylib.mypylib import Dict

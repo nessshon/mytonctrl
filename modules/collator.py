@@ -1,6 +1,6 @@
 from modules.module import MtcModule
 from mypylib import color_print, print_table
-from mytoncore import b642hex, signed_int_to_hex64, shard_prefix_len, hex_shard_to_int, shard_prefix, shard_is_ancestor
+from mytoncore.utils import b642hex, signed_int_to_hex64, shard_prefix_len, hex_shard_to_int, shard_prefix, shard_is_ancestor
 from mytonctrl.console_cmd import check_usage_args_min_len, add_command, check_usage_no_args, check_usage_args_lens
 from mytonctrl.utils import pop_arg_from_args
 

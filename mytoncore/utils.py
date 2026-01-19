@@ -61,7 +61,7 @@ def xhex2hex(x):
         b = x[1:]
         h = b.lower()
         return h
-    except:
+    except Exception:
         return None
 #end define
 

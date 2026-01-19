@@ -4,7 +4,7 @@ import requests
 
 from modules.module import MtcModule
 from mypylib.mypylib import get_timestamp, print_table, color_print
-from mytoncore import get_hostname, signed_int_to_hex64
+from mytoncore.utils import get_hostname, signed_int_to_hex64
 from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_two_args
 from mytonctrl.utils import timestamp2utcdatetime
 

@@ -6,7 +6,7 @@ from pytest_mock import MockerFixture
 from modules.backups import BackupModule
 from modules import backups as backups_module
 from mypylib.mypylib import MyPyClass
-from mytoncore import get_package_resource_path
+from mytoncore.utils import get_package_resource_path
 from mytoncore.mytoncore import MyTonCore
 from pathlib import Path
 
