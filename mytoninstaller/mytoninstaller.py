@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf_8 -*-
 
-import os, sys
+import os
+import sys
 import inspect
 import random
 import json
@@ -166,10 +167,8 @@ def set_node_argument(local, args):
 #end define
 
 
-def Enable(local, args):
-	try:
-		name = args[0]
-	except:
+def Enable(local, args: list):
+	if len(args) < 1:
 		color_print("{red}Bad args. Usage:{endc} enable <mode-name>")
 		print("'FN' - Full node")
 		print("'VC' - Validator console")
@@ -181,6 +180,7 @@ def Enable(local, args):
 		print("'TS' - ton-storage")
 		print("Example: 'enable FN'")
 		return
+	name = args[0]
 	if name == "THA":
 		CreateLocalConfigFile(local, args)
 	args = ["python3", "-m", "mytoninstaller", "-u", local.buffer.user, "-e", f"enable{name}"]
@@ -189,7 +189,6 @@ def Enable(local, args):
 
 
 def DRVCF(local, args):
-	user = local.buffer["user"]
 	args = ["python3", "-m", "mytoninstaller", "-u", local.buffer.user, "-e", "drvcf"]
 	run_as_root(args)
 #end define
@@ -207,7 +206,7 @@ def ton_storage_list(local, args: list):
 	else:
 		api_port = get_ton_storage_port(local)
 		if api_port is None:
-			raise Exception(f'Failed to get Ton Storage API port and port was not provided. Use ton_storage_list [api_port]')
+			raise Exception('Failed to get Ton Storage API port and port was not provided. Use ton_storage_list [api_port]')
 	data = requests.get(f"http://127.0.0.1:{api_port}" + '/api/v1/list', timeout=3)
 	if data.status_code != 200:
 		raise Exception(f'Failed to get Ton Storage list: {data.text}')

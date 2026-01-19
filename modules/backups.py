@@ -2,11 +2,10 @@ import os
 import shutil
 import subprocess
 import time
-import typing
 from typing import Optional
 
 from modules.module import MtcModule
-from mytonctrl.console_cmd import add_command, check_usage_two_args, check_usage_args_min_max_len
+from mytonctrl.console_cmd import add_command, check_usage_args_min_max_len
 from mypylib.mypylib import color_print, ip2int, run_as_root, parse
 from mytoncore.utils import get_package_resource_path
 from mytonctrl.utils import get_current_user, pop_user_from_args
@@ -69,7 +68,7 @@ class BackupModule(MtcModule):
         user = pop_user_from_args(args)
         if '-y' not in args:
             res = input(
-                f'This action will overwrite existing configuration with contents of backup archive, please make sure that donor node is not in operation prior to this action. Proceed [y/n]')
+                'This action will overwrite existing configuration with contents of backup archive, please make sure that donor node is not in operation prior to this action. Proceed [y/n]')
             if res.lower() != 'y':
                 print('aborted.')
                 return
@@ -81,8 +80,8 @@ class BackupModule(MtcModule):
             print('Before proceeding, mtc will create a backup of current configuration.')
             try:
                 self.create_backup([])
-            except:
-                color_print("{red}Could not create backup{endc}")
+            except Exception as e:
+                color_print(f"{{red}}Could not create backup: {e}{{endc}}")
 
         ip = str(ip2int(get_own_ip()))
         command_args = ["-m", self.ton.local.buffer.my_work_dir, "-n", args[0], "-i", ip]

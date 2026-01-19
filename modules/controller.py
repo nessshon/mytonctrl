@@ -8,6 +8,10 @@ from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_
 from mytonctrl.utils import GetItemFromList
 from modules.module import MtcModule
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mytoncore import MyTonCore
+
 
 class ControllerModule(MtcModule):
 

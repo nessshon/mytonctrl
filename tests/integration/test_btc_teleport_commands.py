@@ -1,5 +1,5 @@
 from modules import btc_teleport as btc_teleport_module
-from mytoncore import get_package_resource_path
+from mytoncore.utils import get_package_resource_path
 from mytoncore.mytoncore import MyTonCore
 
 

@@ -4,7 +4,7 @@ import requests
 
 from modules.module import MtcModule
 from mypylib.mypylib import get_timestamp, print_table, color_print
-from mytoncore import get_hostname, signed_int_to_hex64
+from mytoncore.utils import get_hostname, signed_int_to_hex64
 from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_two_args
 from mytonctrl.utils import timestamp2utcdatetime
 
@@ -374,7 +374,7 @@ Severity: <code>{alert.severity}</code>
             color_print("setup_alert_bot - {green}OK{endc}")
         except Exception as e:
             self.local.add_log(f"Error while sending welcome message: {e}", "error")
-            self.local.add_log(f"If you want the bot to write to a multi-person chat group, make sure the bot is added to that chat group. If it is not - do it and run the command `setup_alert_bot <bot_token> <chat_id>` again.", "info")
+            self.local.add_log("If you want the bot to write to a multi-person chat group, make sure the bot is added to that chat group. If it is not - do it and run the command `setup_alert_bot <bot_token> <chat_id>` again.", "info")
             color_print("setup_alert_bot - {red}Error{endc}")
 
     def send_welcome_message(self):
