@@ -56,17 +56,6 @@ else
 	systemctl daemon-reload
 fi
 
-if [ ! -d "${bindir}/openssl_3" ]; then
-  git clone https://github.com/openssl/openssl ${bindir}/openssl_3
-  cd ${bindir}/openssl_3
-  git checkout openssl-3.1.4
-  ./config
-  make build_libs -j$(nproc)
-  opensslPath=`pwd`
-else
-  opensslPath=${bindir}/openssl_3
-fi
-
 rm -rf ${tmp_src_dir}/${repo}
 mkdir -p ${tmp_src_dir}/${repo}
 cd ${tmp_src_dir}/${repo}
@@ -94,7 +83,7 @@ mkdir -p ${tmp_bin_dir}/${repo}
 cd ${tmp_bin_dir}/${repo}
 cpuNumber=$(cat /proc/cpuinfo | grep "processor" | wc -l)
 
-cmake -DCMAKE_BUILD_TYPE=Release ${srcdir}/${repo} -GNinja -DTON_USE_JEMALLOC=ON -DOPENSSL_FOUND=1 -DOPENSSL_INCLUDE_DIR=$opensslPath/include -DOPENSSL_CRYPTO_LIBRARY=$opensslPath/libcrypto.a || exit 1
+cmake -DCMAKE_BUILD_TYPE=Release ${srcdir}/${repo} -GNinja -DTON_USE_JEMALLOC=ON || exit 1
 ninja -j ${cpuNumber} fift validator-engine lite-client validator-engine-console generate-random-id dht-server func tonlibjson rldp-http-proxy || exit 1
 cd ${bindir}/${repo}
 ls --hide="*.config.json" | xargs -d '\n' rm -rf
