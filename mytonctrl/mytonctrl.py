@@ -614,7 +614,10 @@ def PrintStatus(local, ton, args):
 		totalValidators = config34["totalValidators"]
 
 		if opt != "fast":
-			onlineValidators = ton.GetOnlineValidators()
+			try:
+				onlineValidators = ton.GetOnlineValidators()
+			except Exception as e:
+				local.add_log(f"Failed to get online validators: {e}", "warning")
 			# validator_efficiency = ton.GetValidatorEfficiency()
 		if onlineValidators:
 			onlineValidators = len(onlineValidators)
