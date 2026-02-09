@@ -13,7 +13,8 @@ repo="ton"
 branch="master"
 srcdir="/usr/src/"
 bindir="/usr/bin/"
-tmpdir="/tmp/ton_src/"
+tmp_src_dir="/tmp/ton_src/"
+tmp_bin_dir="/tmp/ton_bin/"
 
 # Get arguments
 while getopts a:r:b:g: flag
@@ -55,20 +56,9 @@ else
 	systemctl daemon-reload
 fi
 
-if [ ! -d "${bindir}/openssl_3" ]; then
-  git clone https://github.com/openssl/openssl ${bindir}/openssl_3
-  cd ${bindir}/openssl_3
-  git checkout openssl-3.1.4
-  ./config
-  make build_libs -j$(nproc)
-  opensslPath=`pwd`
-else
-  opensslPath=${bindir}/openssl_3
-fi
-
-rm -rf ${tmpdir}/${repo}
-mkdir -p ${tmpdir}/${repo}
-cd ${tmpdir}/${repo}
+rm -rf ${tmp_src_dir}/${repo}
+mkdir -p ${tmp_src_dir}/${repo}
+cd ${tmp_src_dir}/${repo}
 echo "${remote_url} -> ${branch}"
 git clone --recursive ${remote_url} . || exit 1
 
@@ -77,7 +67,7 @@ cd ${srcdir}/${repo}
 ls -A1 | xargs rm -rf
 
 # Update code
-cp -rfT ${tmpdir}/${repo} .
+cp -rfT ${tmp_src_dir}/${repo} .
 git checkout ${branch}
 
 git submodule sync --recursive
@@ -88,14 +78,17 @@ export CXX=/usr/bin/clang++
 export CCACHE_DISABLE=1
 
 # Update binary
+rm -rf ${tmp_bin_dir}/${repo}
+mkdir -p ${tmp_bin_dir}/${repo}
+cd ${tmp_bin_dir}/${repo}
+cpuNumber=$(cat /proc/cpuinfo | grep "processor" | wc -l)
+
+cmake -DCMAKE_BUILD_TYPE=Release ${srcdir}/${repo} -GNinja -DTON_USE_JEMALLOC=ON || exit 1
+ninja -j ${cpuNumber} fift validator-engine lite-client validator-engine-console generate-random-id dht-server func tonlibjson rldp-http-proxy || exit 1
 cd ${bindir}/${repo}
 ls --hide="*.config.json" | xargs -d '\n' rm -rf
 rm -rf .ninja_*
-memory=$(cat /proc/meminfo | grep MemAvailable | awk '{print $2}')
-cpuNumber=$(cat /proc/cpuinfo | grep "processor" | wc -l)
-
-cmake -DCMAKE_BUILD_TYPE=Release ${srcdir}/${repo} -GNinja -DTON_USE_JEMALLOC=ON -DOPENSSL_FOUND=1 -DOPENSSL_INCLUDE_DIR=$opensslPath/include -DOPENSSL_CRYPTO_LIBRARY=$opensslPath/libcrypto.a
-ninja -j ${cpuNumber} fift validator-engine lite-client validator-engine-console generate-random-id dht-server func tonlibjson rldp-http-proxy
+cp -r ${tmp_bin_dir}/${repo}/. .
 systemctl restart validator
 
 # Конец

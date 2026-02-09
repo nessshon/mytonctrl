@@ -18,7 +18,7 @@ def get_archive_ttl_message(answers: dict):
         url = f'https://toncenter.com/api/v2/getBlockHeader?workchain=-1&shard={-2**63}&seqno={seqno}'
         if answers['network'] == 'Testnet':
             url = url.replace('toncenter.com', 'testnet.toncenter.com')
-        data = requests.get(url).json()
+        data = requests.get(url, timeout=3).json()
         if not data['ok']:
             raise Exception(f'Failed to get block: {data}')
         utime = int(data['result']['gen_utime'])
@@ -75,7 +75,8 @@ def validate_digits_or_empty(value):
 
 def validate_state_ttl(value, archive_ttl):
     v = validate_digits_or_empty(value)
-    if v is not True: return v
+    if v is not True:
+        return v
     if archive_ttl and value and int(value) > int(archive_ttl):
         return "State TTL cannot be greater than blocks TTL"
     return True

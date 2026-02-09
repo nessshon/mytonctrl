@@ -14,7 +14,7 @@ setup(
 	author_email='igroman787',
 	name='mytonctrl',
 	version=version,
-	packages=find_packages('.', exclude=['tests']),
+	packages=find_packages('.', exclude=['tests', 'tests.*']),
 	install_requires=install_requires,
 	package_data={
 		'mytoninstaller.scripts': ['*.sh'],
@@ -30,11 +30,10 @@ setup(
 		'': ['requirements.txt'],
 	},
 	zip_safe=True,
-	python_requires='>=3.7',
+	python_requires='>=3.8',
 	classifiers=[
 		 "Development Status :: 3 - Alpha",
 		 "Intended Audience :: Developers",
-		 "Programming Language :: Python :: 3.7",
 		 "Programming Language :: Python :: 3.8",
 		 "Programming Language :: Python :: 3.9",
 		 "Programming Language :: Python :: 3.10",

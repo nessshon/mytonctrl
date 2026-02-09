@@ -1,0 +1,7 @@
+exclude = [
+    "mypylib",
+    "mypyconsole",
+    "tests",
+]
+[lint]
+ignore = ["E741"]

@@ -1,12 +1,10 @@
-import os
 import json
 import re
 import subprocess
 import requests
 import base64
 
-from mytoncore.utils import hex2b64, dict2b64
-from mytoninstaller.utils import StartMytoncore, GetInitBlock, get_ed25519_pubkey_text
+from mytoninstaller.utils import StartMytoncore, get_ed25519_pubkey_text
 from mypylib.mypylib import ip2int, Dict
 
 
@@ -53,12 +51,6 @@ def BackupMconfig(local):
 
 
 def GetPortsFromVconfig(local):
-	vconfig_path = local.buffer.vconfig_path
-
-	# read vconfig
-	local.add_log("read vconfig", "debug")
-	vconfig = GetConfig(path=vconfig_path)
-
 	# read mconfig
 	local.add_log("read mconfig", "debug")
 	mconfig_path = local.buffer.mconfig_path
@@ -80,7 +72,7 @@ def GetPortsFromVconfig(local):
 
 def CreateLocalConfig(local, initBlock, localConfigPath=defaultLocalConfigPath):
 	# dirty hack, but GetInitBlock() function uses the same technique
-	from mytoncore import hex2base64
+	from mytoncore.utils import hex2base64
 
 	# read global config file
 	file = open("/usr/bin/ton/global.config.json", 'rt')
@@ -102,8 +94,8 @@ def CreateLocalConfig(local, initBlock, localConfigPath=defaultLocalConfigPath):
 	file.close()
 
 	# chown
-	user = local.buffer.user
-	args = ["chown", "-R", user + ':' + user, localConfigPath]
+	# user = local.buffer.user
+	# args = ["chown", "-R", user + ':' + user, localConfigPath]
 
 	print("Local config file created:", localConfigPath)
 #end define
@@ -112,9 +104,9 @@ def CreateLocalConfig(local, initBlock, localConfigPath=defaultLocalConfigPath):
 def get_own_ip():
 	pat = re.compile(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)(\.(?!$)|$)){4}$")
 	requests.packages.urllib3.util.connection.HAS_IPV6 = False
-	ip = requests.get("https://ifconfig.me/ip").text
+	ip = requests.get("https://ifconfig.me/ip", timeout=3).text
 	if not pat.fullmatch(ip):
-		ip = requests.get("https://ipinfo.io/ip").text
+		ip = requests.get("https://ipinfo.io/ip", timeout=3).text
 		if not pat.fullmatch(ip):
 			raise Exception('Cannot get own IP address')
 	return ip

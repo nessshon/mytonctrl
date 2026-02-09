@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 from modules.collator import CollatorModule
 from modules.module import MtcModule
-from modules.pool import PoolModule
 from modules.nominator_pool import NominatorPoolModule
 from modules.single_pool import SingleNominatorModule
 from modules.validator import ValidatorModule
@@ -38,7 +37,7 @@ class Setting:
 
 SETTINGS = {
     'stake': Setting('validator', None, 'Stake amount'),
-    'stakePercent': Setting('validator', 99, 'Stake percent if `stake` is null'),
+    'stakePercent': Setting('validator', 100, 'Stake percent if `stake` is null'),
     'isSlashing': Setting('validator', None, 'Create complaints to validators'),
     'validatorWalletName': Setting('validator', 'wallet_001', 'Validator\'s wallet name'),
     'maxFactor': Setting('validator', None, 'Param send to Elector. if null will be taken from 17 config param'),

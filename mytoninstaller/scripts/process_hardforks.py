@@ -92,10 +92,10 @@ while True:
         add_hardfork(hardfork)
         logger.info(f"Hardfork {hardfork['seqno']} has been added.")
         restart_node()
-        logger.info(f"Node is restarted")
+        logger.info("Node is restarted")
     except Exception as e:
         import traceback
         logger.error(f"Exception occurred: {e}\n{traceback.format_exc()}")
     time.sleep(60)
 
-logger.info(f"All done.")
+logger.info("All done.")

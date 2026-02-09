@@ -2,6 +2,7 @@ import os
 
 from mypylib.mypylib import color_print, print_table
 from modules.module import MtcModule
+from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_two_args
 
 
 class PoolModule(MtcModule):
@@ -25,15 +26,12 @@ class PoolModule(MtcModule):
         print_table(table)
 
     def delete_pool(self, args):
-        try:
-            pool_name = args[0]
-        except:
-            color_print("{red}Bad args. Usage:{endc} delete_pool <pool-name>")
+        if not check_usage_one_arg("delete_pool", args):
             return
+        pool_name = args[0]
         pool = self.ton.GetLocalPool(pool_name)
         pool.Delete()
         color_print("DeletePool - {green}OK{endc}")
-    # end define
 
     def do_import_pool(self, pool_name, addr_b64):
         self.check_download_pool_contract_scripts()
@@ -44,12 +42,10 @@ class PoolModule(MtcModule):
     # end define
 
     def import_pool(self, args):
-        try:
-            pool_name = args[0]
-            pool_addr = args[1]
-        except:
-            color_print("{red}Bad args. Usage:{endc} import_pool <pool-name> <pool-addr>")
+        if not check_usage_two_args("import_pool", args):
             return
+        pool_name = args[0]
+        pool_addr = args[1]
         self.do_import_pool(pool_name, pool_addr)
         color_print("import_pool - {green}OK{endc}")
 
@@ -59,6 +55,6 @@ class PoolModule(MtcModule):
             self.ton.DownloadContract("https://github.com/ton-blockchain/nominator-pool")
 
     def add_console_commands(self, console):
-        console.AddItem("pools_list", self.print_pools_list, self.local.translate("pools_list_cmd"))
-        console.AddItem("delete_pool", self.delete_pool, self.local.translate("delete_pool_cmd"))
-        console.AddItem("import_pool", self.import_pool, self.local.translate("import_pool_cmd"))
+        add_command(self.local, console, "pools_list", self.print_pools_list)
+        add_command(self.local, console, "delete_pool", self.delete_pool)
+        add_command(self.local, console, "import_pool", self.import_pool)

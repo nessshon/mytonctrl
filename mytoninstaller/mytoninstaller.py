@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf_8 -*-
 
-import os, sys
+import os
+import sys
 import inspect
 import random
 import json
@@ -42,9 +43,9 @@ from functools import partial
 
 
 def init_envs(local):
-	local.buffer.cport = int(os.getenv('VALIDATOR_CONSOLE_PORT', random.randint(2000, 65000)))
-	local.buffer.lport = int(os.getenv('LITESERVER_PORT', random.randint(2000, 65000)))
-	local.buffer.vport = int(os.getenv('VALIDATOR_PORT', random.randint(2000, 65000)))
+	local.buffer.cport = int(os.getenv('VALIDATOR_CONSOLE_PORT') if os.getenv('VALIDATOR_CONSOLE_PORT') else random.randint(2000, 65000))
+	local.buffer.lport = int(os.getenv('LITESERVER_PORT') if os.getenv('LITESERVER_PORT') else random.randint(2000, 65000))
+	local.buffer.vport = int(os.getenv('VALIDATOR_PORT') if os.getenv('VALIDATOR_PORT') else random.randint(2000, 65000))
 	local.buffer.archive_ttl = os.getenv('ARCHIVE_TTL')
 	local.buffer.state_ttl = os.getenv('STATE_TTL')
 	local.buffer.public_ip = os.getenv('PUBLIC_IP')
@@ -77,17 +78,17 @@ def Init(local, console):
 	# Create user console
 	console.name = "MyTonInstaller"
 	console.color = console.RED
-	console.AddItem("status", inject_globals(Status), "Print TON component status")
-	console.AddItem("set_node_argument", inject_globals(set_node_argument), "Set node argument")
-	console.AddItem("enable", inject_globals(Enable), "Enable some function")
-	console.AddItem("update", inject_globals(Enable), "Update some function: 'JR' - jsonrpc.  Example: 'update JR'")
-	console.AddItem("plsc", inject_globals(PrintLiteServerConfig), "Print lite-server config")
-	console.AddItem("clcf", inject_globals(CreateLocalConfigFile), "Create lite-server config file")
-	console.AddItem("print_ls_proxy_config", inject_globals(print_ls_proxy_config), "Print ls-proxy config")
-	console.AddItem("create_ls_proxy_config_file", inject_globals(create_ls_proxy_config_file), "Create ls-proxy config file")
-	console.AddItem("drvcf", inject_globals(DRVCF), "Dangerous recovery validator config file")
-	console.AddItem("setwebpass", inject_globals(SetWebPassword), "Set a password for the web admin interface")
-	console.AddItem("ton_storage_list", inject_globals(ton_storage_list), "Print result of /list method at Ton Storage API")
+	console.add_item("status", inject_globals(Status), "Print TON component status")
+	console.add_item("set_node_argument", inject_globals(set_node_argument), "Set node argument", "<arg_name> [arg_value1] [arg_value2] [-d (to delete)]")
+	console.add_item("enable", inject_globals(Enable), "Enable some function", "<mode_name>")
+	console.add_item("update", inject_globals(Enable), "Update some function: 'JR' - jsonrpc.  Example: 'update JR'", "<mode_name>")
+	console.add_item("plsc", inject_globals(PrintLiteServerConfig), "Print lite-server config")
+	console.add_item("clcf", inject_globals(CreateLocalConfigFile), "Create lite-server config file", "[-u <user>]")
+	console.add_item("print_ls_proxy_config", inject_globals(print_ls_proxy_config), "Print ls-proxy config")
+	console.add_item("create_ls_proxy_config_file", inject_globals(create_ls_proxy_config_file), "Create ls-proxy config file")
+	console.add_item("drvcf", inject_globals(DRVCF), "Dangerous recovery validator config file")
+	console.add_item("setwebpass", inject_globals(SetWebPassword), "Set a password for the web admin interface")
+	console.add_item("ton_storage_list", inject_globals(ton_storage_list), "Print result of /list method at Ton Storage API")
 
 	Refresh(local)
 #end define
@@ -166,10 +167,8 @@ def set_node_argument(local, args):
 #end define
 
 
-def Enable(local, args):
-	try:
-		name = args[0]
-	except:
+def Enable(local, args: list):
+	if len(args) < 1:
 		color_print("{red}Bad args. Usage:{endc} enable <mode-name>")
 		print("'FN' - Full node")
 		print("'VC' - Validator console")
@@ -181,6 +180,7 @@ def Enable(local, args):
 		print("'TS' - ton-storage")
 		print("Example: 'enable FN'")
 		return
+	name = args[0]
 	if name == "THA":
 		CreateLocalConfigFile(local, args)
 	args = ["python3", "-m", "mytoninstaller", "-u", local.buffer.user, "-e", f"enable{name}"]
@@ -189,7 +189,6 @@ def Enable(local, args):
 
 
 def DRVCF(local, args):
-	user = local.buffer["user"]
 	args = ["python3", "-m", "mytoninstaller", "-u", local.buffer.user, "-e", "drvcf"]
 	run_as_root(args)
 #end define
@@ -207,7 +206,7 @@ def ton_storage_list(local, args: list):
 	else:
 		api_port = get_ton_storage_port(local)
 		if api_port is None:
-			raise Exception(f'Failed to get Ton Storage API port and port was not provided. Use ton_storage_list [api_port]')
+			raise Exception('Failed to get Ton Storage API port and port was not provided. Use ton_storage_list [api_port]')
 	data = requests.get(f"http://127.0.0.1:{api_port}" + '/api/v1/list', timeout=3)
 	if data.status_code != 200:
 		raise Exception(f'Failed to get Ton Storage list: {data.text}')

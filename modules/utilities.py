@@ -7,6 +7,7 @@ import requests
 
 from mypylib.mypylib import color_print, print_table, color_text, timeago, bcolors
 from modules.module import MtcModule
+from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_two_args
 
 
 class UtilitiesModule(MtcModule):
@@ -15,11 +16,9 @@ class UtilitiesModule(MtcModule):
     default_value = False
 
     def view_account_status(self, args):
-        try:
-            addrB64 = args[0]
-        except:
-            color_print("{red}Bad args. Usage:{endc} vas <account-addr>")
+        if not check_usage_one_arg("vas", args):
             return
+        addrB64 = args[0]
         addrB64 = self.ton.get_destination_addr(addrB64)
         account = self.ton.GetAccount(addrB64)
         version = self.ton.GetVersionFromCodeHash(account.codeHash)
@@ -60,30 +59,22 @@ class UtilitiesModule(MtcModule):
             datetime = timeago(message.time)
             table += [[datetime, type, message.value, fromto]]
         return table
-    # end define
 
     def view_account_history(self, args):
-        try:
-            addr = args[0]
-            limit = int(args[1])
-        except:
-            color_print("{red}Bad args. Usage:{endc} vah <account-addr> <limit>")
+        if not check_usage_two_args("vah", args):
             return
+        addr = args[0]
+        limit = int(args[1])
         table = self.get_history_table(addr, limit)
         print_table(table)
-    # end define
 
     def create_new_bookmark(self, args):
-        try:
-            name = args[0]
-            addr = args[1]
-        except:
-            color_print("{red}Bad args. Usage:{endc} nb <bookmark-name> <account-addr>")
+        if not check_usage_two_args("nb", args):
             return
+        name = args[0]
+        addr = args[1]
         if not self.ton.IsAddr(addr):
             raise Exception("Incorrect address")
-        # end if
-
         bookmark = dict()
         bookmark["name"] = name
         bookmark["addr"] = addr
@@ -107,11 +98,9 @@ class UtilitiesModule(MtcModule):
     # end define
 
     def delete_bookmark(self, args):
-        try:
-            name = args[0]
-        except:
-            color_print("{red}Bad args. Usage:{endc} db <bookmark-name>")
+        if not check_usage_one_arg("db", args):
             return
+        name = args[0]
         self.ton.DeleteBookmark(name)
         color_print("DeleteBookmark - {green}OK{endc}")
     # end define
@@ -149,9 +138,9 @@ class UtilitiesModule(MtcModule):
                 isPassed = item.get("isPassed")
                 if "hash" not in args:
                     hash = self.reduct(hash)
-                if isPassed == True:
+                if isPassed:
                     isPassed = bcolors.green_text("true")
-                if isPassed == False:
+                if isPassed is False:
                     isPassed = bcolors.red_text("false")
                 table += [[hash, item.config.id, votedValidators, wl, approvedPercent_text, isPassed]]
             print_table(table)
@@ -235,14 +224,10 @@ class UtilitiesModule(MtcModule):
     # end define
 
     def offer_diff(self, args):
-        try:
-            offer_hash = args[0]
-            offer_hash = offer_hash
-        except:
-            color_print("{red}Bad args. Usage:{endc} od <offer-hash>")
+        if not check_usage_one_arg("od", args):
             return
+        offer_hash = args[0]
         self.get_offer_diff(offer_hash)
-    # end define
 
     def print_complaints_list(self, args):
         past = "past" in args
@@ -330,7 +315,7 @@ class UtilitiesModule(MtcModule):
                     pubkey = self.reduct(pubkey)
                 if "wallet" not in args:
                     walletAddr = self.reduct(walletAddr)
-                if "offline" in args and online != False:
+                if "offline" in args and online:
                     continue
                 if online:
                     online = bcolors.green_text("true")
@@ -370,11 +355,9 @@ class UtilitiesModule(MtcModule):
         return ok, error
 
     def get_pool_data(self, args):
-        try:
-            pool_name = args[0]
-        except:
-            color_print("{red}Bad args. Usage:{endc} get_pool_data <pool-name | pool-addr>")
+        if not check_usage_one_arg("get_pool_data", args):
             return
+        pool_name = args[0]
         if self.ton.IsAddr(pool_name):
             pool_addr = pool_name
         else:
@@ -385,18 +368,14 @@ class UtilitiesModule(MtcModule):
     # end define
 
     def add_console_commands(self, console):
-        console.AddItem("vas", self.view_account_status, self.local.translate("vas_cmd"))
-        console.AddItem("vah", self.view_account_history, self.local.translate("vah_cmd"))
-
-        console.AddItem("nb", self.create_new_bookmark, self.local.translate("nb_cmd"))
-        console.AddItem("bl", self.print_bookmarks_list, self.local.translate("bl_cmd"))
-        console.AddItem("db", self.delete_bookmark, self.local.translate("db_cmd"))
-
-        console.AddItem("ol", self.print_offers_list, self.local.translate("ol_cmd"))
-        console.AddItem("od", self.offer_diff, self.local.translate("od_cmd"))
-
-        console.AddItem("el", self.print_election_entries_list, self.local.translate("el_cmd"))
-        console.AddItem("vl", self.print_validator_list, self.local.translate("vl_cmd"))
-        console.AddItem("cl", self.print_complaints_list, self.local.translate("cl_cmd"))
-
-        console.AddItem("get_pool_data", self.get_pool_data, self.local.translate("get_pool_data_cmd"))
+        add_command(self.local, console, "vas", self.view_account_status)
+        add_command(self.local, console, "vah", self.view_account_history)
+        add_command(self.local, console, "nb", self.create_new_bookmark)
+        add_command(self.local, console, "bl", self.print_bookmarks_list)
+        add_command(self.local, console, "db", self.delete_bookmark)
+        add_command(self.local, console, "ol", self.print_offers_list)
+        add_command(self.local, console, "od", self.offer_diff)
+        add_command(self.local, console, "el", self.print_election_entries_list)
+        add_command(self.local, console, "vl", self.print_validator_list)
+        add_command(self.local, console, "cl", self.print_complaints_list)
+        add_command(self.local, console, "get_pool_data", self.get_pool_data)

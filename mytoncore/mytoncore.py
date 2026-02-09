@@ -9,6 +9,7 @@ import psutil
 import subprocess
 import requests
 from fastcrc import crc16
+from typing import Optional
 
 from modules import MODES
 from modules.btc_teleport import BtcTeleportModule
@@ -28,7 +29,6 @@ from mytoncore.models import (
 from mypylib.mypylib import (
 	parse,
 	get_timestamp,
-	timestamp2datetime,
 	dec2hex,
 	Dict, int2ip
 )
@@ -37,27 +37,22 @@ from mypylib.mypylib import (
 class MyTonCore():
 	def __init__(self, local):
 		self.local = local
-		self.walletsDir = None
-		self.dbFile = None
-		self.contractsDir = None
-		self.poolsDir = None
-		self.tempDir = None
-		self.nodeName = None
+		self.walletsDir: Optional[str] = None
+		self.dbFile: Optional[str] = None
+		self.contractsDir: str
+		self.poolsDir: str
+		self.tempDir: str
+		self.nodeName: str
 
 		self.liteClient = LiteClient(self.local)
 		self.validatorConsole = ValidatorConsole(self.local)
 		self.fift = Fift(self.local)
 
 		self.Refresh()
-		self.Init()
-	#end define
 
-	def Init(self):
-		# Check all directorys
 		os.makedirs(self.walletsDir, exist_ok=True)
 		os.makedirs(self.contractsDir, exist_ok=True)
 		os.makedirs(self.poolsDir, exist_ok=True)
-	#end define
 
 	def Refresh(self):
 		if self.dbFile:
@@ -131,7 +126,7 @@ class MyTonCore():
 			with open(backup_tmp_path, "r") as file:
 				json.load(file)
 			os.rename(backup_tmp_path, backup_path)  # atomic opetation
-		except:
+		except Exception:
 			self.local.add_log("Could not update backup, backup_tmp file is broken", "warning")
 			os.remove(backup_tmp_path)
 
@@ -272,8 +267,6 @@ class MyTonCore():
 		history = list()
 		#for item in messages:
 		for data in messages:
-			src = None
-			dest = None
 			ihr_disabled = self.GetVarFromDict(data, "message.ihr_disabled")
 			bounce = self.GetVarFromDict(data, "message.bounce")
 			bounced = self.GetVarFromDict(data, "message.bounced")
@@ -295,7 +288,7 @@ class MyTonCore():
 			grams = self.GetVarFromDict(data, "message.info.value.grams.value")
 			ihr_fee = self.GetVarFromDict(data, "message.info.ihr_fee.value")
 			fwd_fee = self.GetVarFromDict(data, "message.info.fwd_fee.value")
-			import_fee = self.GetVarFromDict(data, "message.info.import_fee.value")
+			# import_fee = self.GetVarFromDict(data, "message.info.import_fee.value")
 
 			#body = self.GetVarFromDict(data, "message.body.value")
 			message = self.GetItemFromDict(data, "message")
@@ -399,7 +392,8 @@ class MyTonCore():
 			buff = bytes.fromhex(data)
 			try:
 				result = buff.decode("utf-8")
-			except: pass
+			except Exception:
+				pass
 		return result
 	#end define
 
@@ -422,7 +416,7 @@ class MyTonCore():
 			filePath = filePath.replace(".addr", '')
 		if (".pk" in filePath):
 			filePath = filePath.replace(".pk", '')
-		if os.path.isfile(filePath + ".pk") == False:
+		if not os.path.isfile(filePath + ".pk"):
 			raise Exception("GetWalletFromFile error: Private key not found: " + filePath)
 		#end if
 
@@ -441,7 +435,7 @@ class MyTonCore():
 			filePath = filePath.replace(".addr", '')
 		if (".pk" in filePath):
 			filePath = filePath.replace(".pk", '')
-		if os.path.isfile(filePath + ".pk") == False:
+		if not os.path.isfile(filePath + ".pk"):
 			raise Exception("GetHighWalletFromFile error: Private key not found: " + filePath)
 		#end if
 
@@ -999,7 +993,7 @@ class MyTonCore():
 					buff["weight"] = validatorWeight
 					validators.append(buff)
 			config36["validators"] = validators
-		except:
+		except Exception:
 			config36["validators"] = list()
 		#end try
 
@@ -1089,7 +1083,6 @@ class MyTonCore():
 				start_index = i
 			i += 1
 		var1 = resultList[start_index + 1]
-		var2 = resultList[start_index + 2] # var2 not using
 		return var1
 	#end define
 
@@ -1107,7 +1100,6 @@ class MyTonCore():
 				start_index = i
 			i += 1
 		var1 = resultList[start_index + 1]
-		var2 = resultList[start_index + 2] # var2 not using
 		return var1
 	#end define
 
@@ -1116,7 +1108,7 @@ class MyTonCore():
 		output_file_name = self.tempDir + "complaint-new.boc"
 		with get_package_resource_path('mytoncore', 'complaints/remove-proofs-v2.fif') as fift_script:
 			args = [fift_script, input_file_name, output_file_name]
-			result = self.fift.Run(args)
+			self.fift.Run(args)
 		return output_file_name
 
 
@@ -1143,7 +1135,6 @@ class MyTonCore():
 				start_index = i
 			i += 1
 		var1 = resultList[start_index + 1]
-		var2 = resultList[start_index + 2] # var2 not using
 		return var1
 	#end define
 
@@ -1179,11 +1170,11 @@ class MyTonCore():
 		# Bounceable checking
 		destAccount = self.GetAccount(dest)
 		bounceable = self.IsBounceableAddrB64(dest)
-		if bounceable == False and destAccount.status == "active":
+		if not bounceable and destAccount.status == "active":
 			flags += ["--force-bounce"]
 			text = "Find non-bounceable flag, but destination account already active. Using bounceable flag"
 			self.local.add_log(text, "warning")
-		elif "-n" not in flags and bounceable == True and destAccount.status != "active":
+		elif "-n" not in flags and bounceable and destAccount.status != "active":
 			raise Exception("Find bounceable flag, but destination account is not active. Use non-bounceable address or flag -n")
 		#end if
 
@@ -1223,7 +1214,8 @@ class MyTonCore():
 			try:
 				self.liteClient.Run("sendfile " + filePath, useLocalLiteServer=False)
 				self.liteClient.Run("sendfile " + filePath, useLocalLiteServer=False)
-			except: pass
+			except Exception:
+				pass
 		if duplicateApi:
 			try:
 				self.send_boc_toncenter(filePath)
@@ -1252,9 +1244,9 @@ class MyTonCore():
 		else:
 			default_url = None
 		url = self.local.db.get("duplicateApiUrl", default_url)
-		if url == None:
+		if url is None:
 			return False
-		result = requests.post(url=url, json=data)
+		result = requests.post(url=url, json=data, timeout=3)
 		if result.status_code != 200:
 			self.local.add_log(f'Failed to send boc to toncenter: {result.content}', 'info')
 			return False
@@ -1269,7 +1261,7 @@ class MyTonCore():
 			time.sleep(timesleep)
 			try:
 				seqno = self.GetSeqno(wallet)
-			except:
+			except Exception:
 				self.local.add_log("WaitTransaction error: Can't get seqno", "warning")
 				continue
 			if seqno != wallet.oldseqno:
@@ -1305,7 +1297,6 @@ class MyTonCore():
 		useController = self.using_liquid_staking()
 		stakePercent = self.local.db.get("stakePercent", 100)
 		vconfig = self.GetValidatorConfig()
-		validators = vconfig.get("validators")
 		config17 = self.GetConfig17()
 
 		# Check if optional arguments have been passed to us
@@ -1538,7 +1529,7 @@ class MyTonCore():
 			if exit_code != 0:
 				self.local.add_log(f"Backup failed with exit code {exit_code}", "error")
 		if exit_code == 0:
-			self.local.add_log(f"Backup created successfully", "info")
+			self.local.add_log("Backup created successfully", "info")
 
 	def GetValidatorKeyByTime(self, startWorkTime, endWorkTime):
 		self.local.add_log("start GetValidatorKeyByTime function", "debug")
@@ -1742,11 +1733,11 @@ class MyTonCore():
 		workchain = kwargs.get("workchain", 0)
 		subwallet_default = 698983191 + workchain # 0x29A9A317 + workchain
 		subwallet = kwargs.get("subwallet", subwallet_default)
-		if type(key) == bytes:
+		if isinstance(key, bytes):
 			pk_bytes = key
 		else:
 			pk_bytes = base64.b64decode(key)
-		if wallet_name == None:
+		if wallet_name is None:
 			wallet_name = self.GenerateWalletName()
 		wallet_path = self.walletsDir + wallet_name
 		with open(wallet_path + ".pk", 'wb') as file:
@@ -1816,7 +1807,8 @@ class MyTonCore():
 						index = item[item.rfind('_')+1:]
 						index = int(index)
 						indexList.append(index)
-					except: pass
+					except Exception:
+						pass
 			index = max(indexList) + 1
 			index_str = str(index).rjust(3, '0')
 			walletName = walletPrefix + index_str
@@ -1901,11 +1893,11 @@ class MyTonCore():
 		# Bounceable checking
 		destAccount = self.GetAccount(dest)
 		bounceable = self.IsBounceableAddrB64(dest)
-		if bounceable == False and destAccount.status == "active":
+		if not bounceable and destAccount.status == "active":
 			flags += ["-b"]
 			text = "Find non-bounceable flag, but destination account already active. Using bounceable flag"
 			self.local.add_log(text, "warning")
-		elif "-n" not in flags and bounceable == True and destAccount.status != "active":
+		elif "-n" not in flags and bounceable and destAccount.status != "active":
 			raise Exception("Find bounceable flag, but destination account is not active. Use non-bounceable address or flag -n")
 		#end if
 
@@ -1977,7 +1969,7 @@ class MyTonCore():
 		raise Exception("GetValidatorKey error: validator key not found. Are you sure you are a validator?")
 	#end define
 
-	def GetElectionEntries(self, past=False):
+	def GetElectionEntries(self, past: bool = False):
 		# Get buffer
 		bname = "electionEntries" + str(past)
 		buff = self.GetFunctionBuffer(bname)
@@ -1989,7 +1981,7 @@ class MyTonCore():
 		entries = dict()
 		fullElectorAddr = self.GetFullElectorAddr()
 		electionId = self.GetActiveElectionId(fullElectorAddr)
-		if past == False and electionId == 0:
+		if not past and electionId == 0:
 			return entries
 		#end if
 
@@ -2012,13 +2004,11 @@ class MyTonCore():
 
 		# Get json
 		# Parser by @skydev (https://github.com/skydev0h)
-		startWorkTime = rawElectionEntries[0]
-		endElectionsTime = rawElectionEntries[1]
-		minStake = rawElectionEntries[2]
-		allStakes = rawElectionEntries[3]
+		# startWorkTime = rawElectionEntries[0]
+		# endElectionsTime = rawElectionEntries[1]
+		# minStake = rawElectionEntries[2]
+		# allStakes = rawElectionEntries[3]
 		electionEntries = rawElectionEntries[4]
-		wtf1 = rawElectionEntries[5]
-		wtf2 = rawElectionEntries[6]
 		for entry in electionEntries:
 			if len(entry) == 0:
 				continue
@@ -2330,8 +2320,8 @@ class MyTonCore():
 			if "SAVE_COMPLAINT" in line:
 				buff = line.split('\t')
 				chash = buff[2]
-				validatorPubkey = buff[3]
-				createdTime = buff[4]
+				# validatorPubkey = buff[3]
+				# createdTime = buff[4]
 				filePath = buff[5]
 				ok = self.CheckComplaint(filePath)
 				if ok is True:
@@ -2348,7 +2338,6 @@ class MyTonCore():
 		for line in lines:
 			if "COMPLAINT_VOTE_FOR" in line:
 				buff = line.split('\t')
-				chash = buff[1]
 				ok_buff = buff[2]
 				if ok_buff == "YES":
 					ok = True
@@ -2758,9 +2747,9 @@ class MyTonCore():
 			line = line.lstrip()
 			if "raw@Any" in line:
 				rawAny = True
-			if rawAny == True and ')' in line:
+			if rawAny and ')' in line:
 				rawAny = False
-			if line[:2] == "x{" and rawAny == False:
+			if line[:2] == "x{" and not rawAny:
 				continue
 			if deep == 0:
 				data[line] = dict()
@@ -2797,7 +2786,8 @@ class MyTonCore():
 		result = self.GetVar(text, search2)
 		try:
 			result = int(result)
-		except: pass
+		except Exception:
+			pass
 		return result
 	#end define
 
@@ -3034,7 +3024,8 @@ class MyTonCore():
 		bounceable = None
 		try:
 			workchain, addr, bounceable = self.ParseAddrB64(inputAddr)
-		except: pass
+		except Exception:
+			pass
 		return bounceable
 	#en define
 
@@ -3119,7 +3110,8 @@ class MyTonCore():
 	def SetSettings(self, name, data):
 		try:
 			data = json.loads(data)
-		except: pass
+		except Exception:
+			pass
 		self.local.db[name] = data
 		self.local.save()
 		self.create_self_db_backup()
@@ -3158,12 +3150,12 @@ class MyTonCore():
 	def check_enable_mode(self, name):
 		if name == 'liteserver':
 			if self.using_validator():
-				raise Exception(f'Cannot enable liteserver mode while validator mode is enabled. '
-								f'Use `disable_mode validator` first.')
+				raise Exception('Cannot enable liteserver mode while validator mode is enabled. '
+								'Use `disable_mode validator` first.')
 		if name == 'validator':
 			if self.using_liteserver():
-				raise Exception(f'Cannot enable validator mode while liteserver mode is enabled. '
-								f'Use `disable_mode liteserver` first.')
+				raise Exception('Cannot enable validator mode while liteserver mode is enabled. '
+								'Use `disable_mode liteserver` first.')
 			BtcTeleportModule(self, self.local).init()
 		if name == 'liquid-staking':
 			from mytoninstaller.settings import enable_ton_http_api
@@ -3369,7 +3361,7 @@ class MyTonCore():
 		self.local.add_log("start ImportCertificate function", "debug")
 		cmd = "importshardoverlaycert {workchain} {shardprefix} {pubkey} {certfile}"
 		cmd = cmd.format(workchain=-1, shardprefix=-9223372036854775808, pubkey=pubkey, certfile=fileName)
-		result = self.validatorConsole.Run(cmd)
+		self.validatorConsole.Run(cmd)
 	#end define
 
 	def GetValidatorsWalletsList(self):
@@ -3406,7 +3398,7 @@ class MyTonCore():
 		os.makedirs(gitPath + "build", exist_ok=True)
 		args = ["bash", "build.sh"]
 		process = subprocess.run(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=gitPath, timeout=30)
-		output = process.stdout.decode("utf-8")
+		process.stdout.decode("utf-8")
 		err = process.stderr.decode("utf-8")
 		if len(err) > 0:
 			raise Exception(err)
@@ -3419,7 +3411,7 @@ class MyTonCore():
 		bocPath = self.local.buffer.my_temp_dir + wallet.name + "validator-withdraw-query.boc"
 		fiftScript = self.contractsDir + "nominator-pool/func/validator-withdraw.fif"
 		args = [fiftScript, amount, bocPath]
-		result = self.fift.Run(args)
+		self.fift.Run(args)
 		resultFilePath = self.SignBocWithWallet(wallet, bocPath, poolAddr, 1.35)
 		self.SendFile(resultFilePath, wallet)
 	#end define
@@ -3466,36 +3458,6 @@ class MyTonCore():
 		return resultFilePath
 	#end define
 
-	def GetControllerData(self, addrB64):
-		self.local.add_log("start GetControllerData function", "debug")
-		account = self.GetAccount(addrB64)
-		if account.status != "active":
-			return
-		cmd = "runmethodfull {addrB64} all_data".format(addrB64=addrB64)
-		result = self.liteClient.Run(cmd)
-		data = self.Result2List(result)
-		controllerData = dict()
-		wallet_data = dict()
-		wallet_data["seqno"] = data[0][0]
-		wallet_data["subwallet_id"] = data[0][1]
-		wallet_data["controller_pubkey"] = data[0][2]
-		wallet_data["last_used"] = data[0][3]
-		static_data = dict()
-		static_data["nominator_address"] = data[1][0]
-		static_data["controller_reward_share"] = data[1][1]
-		static_data["controller_cover_ability"] = data[1][2]
-		balances = dict()
-		balances["nominator_total_balance"] = data[2][0]
-		balances["nominator_elector_balance"] = data[2][1]
-		balances["nominator_withdrawal_request"] = data[2][2]
-		balances["total_stake_on_elector"] = data[2][3]
-		controllerData["wallet_data"] = wallet_data
-		controllerData["static_data"] = static_data
-		controllerData["balances"] = balances
-		controllerData["last_sent_stake_time"] = data[3]
-		return controllerData
-	#end define
-
 	def GetLocalPool(self, poolName):
 		self.local.add_log("start GetLocalPool function", "debug")
 		if poolName is None:
@@ -3504,7 +3466,7 @@ class MyTonCore():
 
 		# Create pool object
 		pool = Pool(poolName, filePath)
-		if os.path.isfile(pool.addrFilePath) == False:
+		if not os.path.isfile(pool.addrFilePath):
 			raise Exception(f"GetLocalPool error: Address file not found: {pool.addrFilePath}")
 		#end if
 
@@ -3629,7 +3591,7 @@ class MyTonCore():
 		controllerData = self.GetControllerData(controllerAddr)
 		using_controllers = self.local.db.get("using_controllers", list())
 		if controllerData is None:
-			raise Exception(f"CheckController error: controller not initialized. Use new_controllers")
+			raise Exception("CheckController error: controller not initialized. Use new_controllers")
 		if controllerData["approved"] != -1:
 			raise Exception(f"CheckController error: controller not approved: {controllerAddr}")
 		if controllerAddr not in using_controllers:
@@ -3673,7 +3635,7 @@ class MyTonCore():
 		config15 = self.GetConfig15()
 		controllerData = self.GetControllerData(addrB64)
 		if controllerData is None:
-			raise Exception(f"IsControllerReadyToStake error: controller not initialized. Use new_controllers")
+			raise Exception("IsControllerReadyToStake error: controller not initialized. Use new_controllers")
 		lastSentStakeTime = controllerData["stake_at"]
 		stakeFreezeDelay = config15["validatorsElectedFor"] + config15["stakeHeldFor"]
 		result = lastSentStakeTime + stakeFreezeDelay < now
@@ -3729,7 +3691,7 @@ class MyTonCore():
 		fiftScript = self.contractsDir + "jetton_pool/fift-scripts/generate-loan-request.fif"
 		resultFilePath = self.tempDir + self.nodeName + wallet.name + "_loan_request.boc"
 		args = [fiftScript, min_loan, max_loan, max_interest, resultFilePath]
-		result = self.fift.Run(args)
+		self.fift.Run(args)
 		resultFilePath = self.SignBocWithWallet(wallet, resultFilePath, controllerAddr, 1.01)
 		self.SendFile(resultFilePath, wallet)
 		self.WaitLoan(controllerAddr)
@@ -3795,7 +3757,7 @@ class MyTonCore():
 		fiftScript = self.contractsDir + "jetton_pool/fift-scripts/withdraw-controller.fif"
 		resultFilePath = self.tempDir + self.nodeName + wallet.name + "_withdraw_request.boc"
 		args = [fiftScript, amount, resultFilePath]
-		result = self.fift.Run(args)
+		self.fift.Run(args)
 		resultFilePath = self.SignBocWithWallet(wallet, resultFilePath, controllerAddr, 1.06)
 		self.SendFile(resultFilePath, wallet)
 	#end define
@@ -3937,7 +3899,7 @@ class MyTonCore():
 		try:
 			config = self.GetValidatorConfig()
 			return int2ip(config['addrs'][0]['ip'])
-		except:
+		except Exception:
 			return None
 
 	def get_validator_engine_ip(self):
@@ -3983,7 +3945,8 @@ class MyTonCore():
 		try:
 			self.ParseAddrB64(addr)
 			return True
-		except: pass
+		except Exception:
+			pass
 		return False
 	#end define
 
@@ -3991,7 +3954,8 @@ class MyTonCore():
 		try:
 			self.ParseAddrFull(addr)
 			return True
-		except: pass
+		except Exception:
+			pass
 		return False
 	#end define
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf_8 -*-
 import base64
 import pathlib
 import subprocess
@@ -7,6 +5,9 @@ import json
 import psutil
 import inspect
 import socket
+import sys
+import getopt
+import os
 
 from functools import partial
 
@@ -23,35 +24,33 @@ from mypylib.mypylib import (
 	get_load_avg,
 	run_as_root,
 	time2human,
-	timeago,
-	timestamp2datetime,
 	get_timestamp,
 	print_table,
 	color_print,
 	color_text,
 	bcolors,
 	Dict,
-	MyPyClass, ip2int
+	MyPyClass
 )
 
 from mypyconsole.mypyconsole import MyPyConsole
 from mytoncore.mytoncore import MyTonCore
 from mytoncore.functions import (
-	Slashing,
 	GetMemoryInfo,
 	GetSwapInfo,
 	GetBinGitHash,
 )
 from mytoncore.utils import get_package_resource_path
 from mytoncore.telemetry import is_host_virtual
+from mytonctrl.console_cmd import add_command, check_usage_one_arg, check_usage_args_min_max_len
 from mytonctrl.migrate import run_migrations
 from mytonctrl.utils import GetItemFromList, timestamp2utcdatetime, fix_git_config, is_hex, GetColorInt, \
-	pop_user_from_args, pop_arg_from_args
-
-import sys, getopt, os
-
+	pop_user_from_args, pop_arg_from_args, get_clang_major_version, get_os_version
 from mytoninstaller.archive_blocks import download_blocks
 from mytoninstaller.utils import get_ton_storage_port
+
+
+CLANG_VERSION_REQUIRED = 21
 
 
 def Init(local, ton, console, argv):
@@ -71,29 +70,23 @@ def Init(local, ton, console, argv):
 
 	# Create user console
 	console.name = "MyTonCtrl"
-	console.startFunction = inject_globals(PreUp)
+	console.startFunction = inject_globals(pre_up)
 	console.debug = ton.GetSettings("debug")
 	console.local = local
 
-	console.AddItem("update", inject_globals(Update), local.translate("update_cmd"))
-	console.AddItem("upgrade", inject_globals(Upgrade), local.translate("upgrade_cmd"))
-	console.AddItem("installer", inject_globals(Installer), local.translate("installer_cmd"))
-	console.AddItem("status", inject_globals(PrintStatus), local.translate("status_cmd"))
-	console.AddItem("status_modes", inject_globals(mode_status), local.translate("status_modes_cmd"))
-	console.AddItem("status_settings", inject_globals(settings_status), local.translate("settings_status_cmd"))
-	console.AddItem("enable_mode", inject_globals(enable_mode), local.translate("enable_mode_cmd"))
-	console.AddItem("disable_mode", inject_globals(disable_mode), local.translate("disable_mode_cmd"))
-	console.AddItem("about", inject_globals(about), local.translate("about_cmd"))
-	console.AddItem("get", inject_globals(GetSettings), local.translate("get_cmd"))
-	console.AddItem("set", inject_globals(SetSettings), local.translate("set_cmd"))
-	console.AddItem("rollback", inject_globals(rollback_to_mtc1), local.translate("rollback_cmd"))
-	console.AddItem("download_archive_blocks", inject_globals(download_archive_blocks), local.translate("download_archive_blocks_cmd"))
-
-	#console.AddItem("xrestart", inject_globals(Xrestart), local.translate("xrestart_cmd"))
-	#console.AddItem("xlist", inject_globals(Xlist), local.translate("xlist_cmd"))
-	#console.AddItem("gpk", inject_globals(GetPubKey), local.translate("gpk_cmd"))
-	#console.AddItem("ssoc", inject_globals(SignShardOverlayCert), local.translate("ssoc_cmd"))
-	#console.AddItem("isoc", inject_globals(ImportShardOverlayCert), local.translate("isoc_cmd"))
+	add_command(local, console, "update", inject_globals(Update))
+	add_command(local, console, "upgrade", inject_globals(Upgrade))
+	add_command(local, console, "installer", inject_globals(Installer))
+	add_command(local, console, "status", inject_globals(PrintStatus))
+	add_command(local, console, "status_modes", inject_globals(mode_status))
+	add_command(local, console, "status_settings", inject_globals(settings_status))
+	add_command(local, console, "enable_mode", inject_globals(enable_mode))
+	add_command(local, console, "disable_mode", inject_globals(disable_mode))
+	add_command(local, console, "about", inject_globals(about))
+	add_command(local, console, "get", inject_globals(GetSettings))
+	add_command(local, console, "set", inject_globals(SetSettings))
+	add_command(local, console, "rollback", inject_globals(rollback_to_mtc1))
+	add_command(local, console, "download_archive_blocks", inject_globals(download_archive_blocks))
 
 	from modules.backups import BackupModule
 	module = BackupModule(ton, local)
@@ -155,7 +148,7 @@ def Init(local, ton, console, argv):
 		module = AlertBotModule(ton, local)
 		module.add_console_commands(console)
 
-	console.AddItem("benchmark", inject_globals(run_benchmark), local.translate("benchmark_cmd"))
+	add_command(local, console, "benchmark", inject_globals(run_benchmark))
 
 	# Process input parameters
 	opts, args = getopt.getopt(argv,"hc:w:",["config=","wallets="])
@@ -180,18 +173,16 @@ def Init(local, ton, console, argv):
 				print ("Wallets path " + wallets  + " is not a directory")
 				sys.exit()
 			ton.walletsDir = wallets
-	#end for
 
 	local.db.config.logLevel = "debug" if console.debug else "info"
 	local.db.config.isLocaldbSaving = False
 	local.run()
-#end define
 
 
 def about(local, ton, args):
 	from modules import get_mode, get_mode_settings
-	if len(args) != 1:
-		color_print("{red}Bad args. Usage:{endc} about <mode_name>")
+	if not check_usage_one_arg("about", args):
+		return
 	mode_name = args[0]
 	mode = get_mode(mode_name)
 	if mode is None:
@@ -204,7 +195,6 @@ def about(local, ton, args):
 	print('Settings:', 'no' if len(mode_settings) == 0 else '')
 	for setting_name, setting in mode_settings.items():
 		color_print(f'  {{bold}}{setting_name}{{endc}}: {setting.description}.\n    Default value: {setting.default_value}')
-#end define
 
 
 def check_installer_user(local):
@@ -222,13 +212,14 @@ def check_installer_user(local):
 #end define
 
 
-def PreUp(local: MyPyClass, ton: MyTonCore):
-	CheckMytonctrlUpdate(local)
-	check_installer_user(local)
-	check_vport(local, ton)
-	warnings(local, ton)
-	# CheckTonUpdate()
-#end define
+def pre_up(local: MyPyClass, ton: MyTonCore):
+	try:
+		check_mytonctrl_update(local)
+		check_installer_user(local)
+		check_vport(local, ton)
+		warnings(local, ton)
+	except Exception as e:
+		local.add_log(f'PreUp error: {e}', 'error')
 
 
 def Installer(args):
@@ -264,7 +255,7 @@ def GetAuthorRepoBranchFromArgs(args):
 def check_vport(local, ton):
 	try:
 		vconfig = ton.GetValidatorConfig()
-	except:
+	except Exception:
 		local.add_log("GetValidatorConfig error", "error")
 		return
 	addr = vconfig.addrs.pop()
@@ -383,8 +374,8 @@ def Upgrade(local, ton, args: list):
 	ton.SetSettings("validatorConsole", validatorConsole)
 
 	clang_version = get_clang_major_version()
-	if clang_version is None or clang_version < 16:
-		text = f"{{red}}WARNING: THIS UPGRADE WILL MOST PROBABLY FAIL DUE TO A WRONG CLANG VERSION: {clang_version}, REQUIRED VERSION IS 16. RECOMMENDED TO EXIT NOW AND UPGRADE CLANG AS PER INSTRUCTIONS: https://gist.github.com/neodix42/e4b1b68d2d5dd3dec75b5221657f05d7{{endc}}\n"
+	if clang_version is None or clang_version < CLANG_VERSION_REQUIRED:
+		text = f"{{red}}WARNING: THIS UPGRADE WILL MOST PROBABLY FAIL DUE TO A WRONG CLANG VERSION: {clang_version}, REQUIRED VERSION IS {CLANG_VERSION_REQUIRED}. RECOMMENDED TO EXIT NOW AND UPGRADE CLANG AS PER INSTRUCTIONS: https://gist.github.com/neodix42/24d6a401e928f7e895fcc8e7b7c5c24a{{endc}}\n"
 		color_print(text)
 		if input("Continue with upgrade anyway? [Y/n]\n").strip().lower() not in ('y', ''):
 			print('aborted.')
@@ -411,37 +402,6 @@ def upgrade_btc_teleport(local, ton, reinstall=False, branch: str = 'master', us
 	from modules.btc_teleport import BtcTeleportModule
 	module = BtcTeleportModule(ton, local)
 	local.try_function(module.init, args=[reinstall, branch, user])
-
-
-def get_clang_major_version():
-	try:
-		process = subprocess.run(["clang", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-								 text=True, timeout=3)
-		if process.returncode != 0:
-			return None
-
-		output = process.stdout
-
-		lines = output.strip().split('\n')
-		if not lines:
-			return None
-
-		first_line = lines[0]
-		if "clang version" not in first_line:
-			return None
-
-		version_part = first_line.split("clang version")[1].strip()
-		major_version = version_part.split('.')[0]
-
-		major_version = ''.join(c for c in major_version if c.isdigit())
-
-		if not major_version:
-			return None
-
-		return int(major_version)
-	except Exception as e:
-		print(f"Error checking clang version: {type(e)}: {e}")
-		return None
 
 
 def rollback_to_mtc1(local, ton,  args):
@@ -486,12 +446,11 @@ def run_benchmark(ton, args):
 	print_table(table)
 #end define
 
-def CheckMytonctrlUpdate(local):
+def check_mytonctrl_update(local):
 	git_path = local.buffer.my_dir
 	result = check_git_update(git_path)
 	if result is True:
 		color_print(local.translate("mytonctrl_update_available"))
-#end define
 
 def print_warning(local, warning_name: str):
 	color_print("============================================================================================")
@@ -523,7 +482,7 @@ def check_validator_balance(local, ton):
 		validator_wallet = ton.GetValidatorWallet()
 		validator_account = local.try_function(ton.GetAccount, args=[validator_wallet.addrB64])
 		if validator_account is None:
-			local.add_log(f"Failed to check validator wallet balance", "warning")
+			local.add_log("Failed to check validator wallet balance", "warning")
 			return
 		if validator_account.balance < 100:
 			print_warning(local, "validator_balance_warning")
@@ -558,7 +517,8 @@ def check_adnl(local, ton):
 		config = ton.GetValidatorConfig()
 		if config.fullnodeslaves:
 			return
-	except: ...
+	except Exception:
+		pass
 	from modules.utilities import UtilitiesModule
 	utils_module = UtilitiesModule(ton, local)
 	ok, error = utils_module.check_adnl_connection()
@@ -567,7 +527,14 @@ def check_adnl(local, ton):
 		print_warning(local, error)
 #end define
 
-def warnings(local, ton):
+def check_ubuntu_version(local: MyPyClass):
+	distro, ver = get_os_version()
+	if distro == 'ubuntu':
+		if ver not in ['22.04', '24.04']:
+			warning = local.translate("ubuntu_version_warning").format(ver)
+			print_warning(local, warning)
+
+def warnings(local: MyPyClass, ton: MyTonCore):
 	local.try_function(check_disk_usage, args=[local, ton])
 	local.try_function(check_sync, args=[local, ton])
 	local.try_function(check_adnl, args=[local, ton])
@@ -575,8 +542,7 @@ def warnings(local, ton):
 	local.try_function(check_vps, args=[local, ton])
 	local.try_function(check_tg_channel, args=[local, ton])
 	local.try_function(check_slashed, args=[local, ton])
-#end define
-
+	local.try_function(check_ubuntu_version, args=[local])
 
 def CheckTonUpdate(local):
 	git_path = "/usr/src/ton"
@@ -632,12 +598,12 @@ def PrintStatus(local, ton, args):
 	disks_load_avg = ton.GetStatistics("disksLoadAvg", statistics)
 	disks_load_percent_avg = ton.GetStatistics("disksLoadPercentAvg", statistics)
 
-	all_status = validator_status.is_working == True and validator_status.out_of_sync < 20
+	all_status = validator_status.is_working and validator_status.out_of_sync < 20
 
 	try:
 		vconfig = ton.GetValidatorConfig()
 		fullnode_adnl = base64.b64decode(vconfig.fullnode).hex().upper()
-	except:
+	except Exception:
 		fullnode_adnl = 'n/a'
 
 	if all_status:
@@ -648,7 +614,10 @@ def PrintStatus(local, ton, args):
 		totalValidators = config34["totalValidators"]
 
 		if opt != "fast":
-			onlineValidators = ton.GetOnlineValidators()
+			try:
+				onlineValidators = ton.GetOnlineValidators()
+			except Exception as e:
+				local.add_log(f"Failed to get online validators: {e}", "warning")
 			# validator_efficiency = ton.GetValidatorEfficiency()
 		if onlineValidators:
 			onlineValidators = len(onlineValidators)
@@ -781,11 +750,7 @@ def PrintLocalStatus(local, ton, adnlAddr, validatorIndex, validatorEfficiency, 
 	# Disks status
 	disksLoad_data = list()
 	for key, item in disksLoadAvg.items():
-		diskLoad1_text = bcolors.green_text(item[0])  # TODO: this variables is unused. Why?
-		diskLoad5_text = bcolors.green_text(item[1])  # TODO: this variables is unused. Why?
 		diskLoad15_text = bcolors.green_text(item[2])
-		diskLoadPercent1_text = GetColorInt(disksLoadPercentAvg[key][0], 80, logic="less", ending="%")  # TODO: this variables is unused. Why?
-		diskLoadPercent5_text = GetColorInt(disksLoadPercentAvg[key][1], 80, logic="less", ending="%")  # TODO: this variables is unused. Why?
 		diskLoadPercent15_text = GetColorInt(disksLoadPercentAvg[key][2], 80, logic="less", ending="%")
 		buff = "{}, {}"
 		buff = "{}{}:[{}{}{}]{}".format(bcolors.cyan, key, bcolors.default, buff, bcolors.cyan, bcolors.endc)
@@ -940,8 +905,8 @@ def PrintLocalStatus(local, ton, adnlAddr, validatorIndex, validatorEfficiency, 
 	print()
 #end define
 
-def GetColorStatus(input):
-	if input == True:
+def GetColorStatus(status: bool):
+	if status:
 		result = bcolors.green_text("working")
 	else:
 		result = bcolors.red_text("not working")
@@ -1027,22 +992,18 @@ def GetColorTime(datetime, timestamp):
 #end define
 
 def GetSettings(ton, args):
-	try:
-		name = args[0]
-	except:
-		color_print("{red}Bad args. Usage:{endc} get <settings-name>")
+	if not check_usage_one_arg("get", args):
 		return
+	name = args[0]
 	result = ton.GetSettings(name)
 	print(json.dumps(result, indent=2))
 #end define
 
 def SetSettings(local, ton, args):
-	try:
-		name = args[0]
-		value = args[1]
-	except:
-		color_print("{red}Bad args. Usage:{endc} set <settings-name> <settings-value>")
+	if not check_usage_args_min_max_len("set", args, min_len=2, max_len=3):
 		return
+	name = args[0]
+	value = args[1]
 	if name == 'usePool' or name == 'useController':
 		mode_name = 'nominator-pool' if name == 'usePool' else 'liquid-staking'
 		color_print(f"{{red}} Error: set {name} ... is deprecated and does not work {{endc}}."
@@ -1067,66 +1028,21 @@ def SetSettings(local, ton, args):
 
 
 def enable_mode(local, ton, args):
-	try:
-		name = args[0]
-	except:
-		color_print("{red}Bad args. Usage:{endc} enable_mode <mode_name>")
+	if not check_usage_one_arg("enable_mode", args):
 		return
+	name = args[0]
 	ton.enable_mode(name)
 	color_print("enable_mode - {green}OK{endc}")
 	local.exit()
-#end define
+
 
 def disable_mode(local, ton, args):
-	try:
-		name = args[0]
-	except:
-		color_print("{red}Bad args. Usage:{endc} disable_mode <mode_name>")
+	if not check_usage_one_arg("disable_mode", args):
 		return
+	name = args[0]
 	ton.disable_mode(name)
 	color_print("disable_mode - {green}OK{endc}")
 	local.exit()
-#end define
-
-
-def Xrestart(inputArgs):
-	if len(inputArgs) < 2:
-		color_print("{red}Bad args. Usage:{endc} xrestart <timestamp> <args>")
-		return
-	with get_package_resource_path('mytonctrl', 'scripts/xrestart.py') as xrestart_script_path:
-		args = ["python3", xrestart_script_path]  # TODO: Fix path
-		args += inputArgs
-		exitCode = run_as_root(args)
-	if exitCode == 0:
-		text = "Xrestart - {green}OK{endc}"
-	else:
-		text = "Xrestart - {red}Error{endc}"
-	color_print(text)
-#end define
-
-def Xlist(args):
-	color_print("Xlist - {green}OK{endc}")
-#end define
-
-def GetPubKey(ton, args):
-	adnlAddr = ton.GetAdnlAddr()
-	pubkey = ton.GetPubKey(adnlAddr)
-	print("pubkey:", pubkey)
-#end define
-
-def SignShardOverlayCert(ton, args):
-	try:
-		adnl = args[0]
-		pubkey = args[0]
-	except:
-		color_print("{red}Bad args. Usage:{endc} ssoc <pubkey>")
-		return
-	ton.SignShardOverlayCert(adnl, pubkey)
-#end define
-
-def ImportShardOverlayCert(ton, args):
-	ton.ImportShardOverlayCert()
-#end define
 
 
 def download_archive_blocks(local, args: list):
@@ -1134,31 +1050,32 @@ def download_archive_blocks(local, args: list):
 		color_print("{red}Bad args. Usage:{endc} download_archive_blocks [ton_storage_api_port] <download_path> <from_block_seqno> [to_block_seqno] [--only-master]")
 		return
 
-	only_master = pop_arg_from_args(args, '--only-master')
+	only_master = '--only-master' in args
+	args.remove('--only-master') if only_master else None
 	api_port = None
 	if args[0].isdigit():
-		api_port = args.pop(0)
+		api_port = int(args.pop(0))
 	path = pathlib.Path(args[0])
 	from_block = args[1]
 	to_block = args[2] if len(args) >= 3 else None
 	try:
 		from_block, to_block = int(from_block), int(to_block) if to_block else None
-	except:
+	except ValueError:
 		color_print("{red}Bad args. from_block and to_block must be integers.{endc}")
 		return
 
 	if api_port is None:
 		api_port = get_ton_storage_port(local)
 		if api_port is None:
-			raise Exception(f'Failed to get Ton Storage API port and port was not provided')
+			raise Exception('Failed to get Ton Storage API port and port was not provided')
 
 	# check ton storage is alive
 	local_ts_url = f"http://127.0.0.1:{api_port}"
 
 	try:
 		requests.get(local_ts_url + '/api/v1/list', timeout=3)
-	except:
-		color_print(f"{{red}}Error: cannot connect to ton-storage at 127.0.0.1:{api_port}. "
+	except Exception as e:
+		color_print(f"{{red}}Error: cannot connect to ton-storage at 127.0.0.1:{api_port}: {type(e)}: {e}. "
 					f"Make sure `ton_storage` daemon is running or install it via `installer enable TS`.{{endc}}")
 		return
 

@@ -151,7 +151,7 @@ def download_blocks(local, downloads_path: str, block_from: int, block_to: int =
             except Exception as e:
                 local.add_log(f"Error while downloading blocks: {e}", "error")
                 return
-    local.add_log(f"Downloading blocks is completed", "info")
+    local.add_log("Downloading blocks is completed", "info")
 
 
 def run_process_hardforks(local, from_seqno: int):
