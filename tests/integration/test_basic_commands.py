@@ -440,9 +440,8 @@ def test_download_archive_blocks(cli, monkeypatch):
 
     monkeypatch.setattr('mytonctrl.mytonctrl.download_blocks', download_blocks)
 
-    with pytest.raises(Exception) as e:
-        cli.execute('download_archive_blocks test/ 1')
-        assert 'Failed to get Ton Storage API port and port was not provided' in str(e)
+    output = cli.execute('download_archive_blocks test/ 1')
+    assert 'Failed to get Ton Storage API port and port was not provided' in output
     monkeypatch.setattr('mytonctrl.mytonctrl.get_ton_storage_port', lambda *_: 3334)
 
     # unable to connect
