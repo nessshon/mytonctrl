@@ -95,7 +95,7 @@ else
 fi
 
 # Установка компонентов python3
-pip3 install psutil==6.1.0 crc16==0.1.1 requests==2.32.3
+pip3 install psutil==6.1.0 crc16==0.1.1 requests==2.32.4
 
 # Клонирование репозиториев с github.com
 echo -e "${COLOR}[3/6]${ENDC} Preparing for compilation"
