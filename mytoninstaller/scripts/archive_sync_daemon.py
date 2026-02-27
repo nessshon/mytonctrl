@@ -18,6 +18,7 @@ from mytoninstaller.archive_blocks import download_bag
 
 IMPORT_DIR = "/var/ton-work/db/import/"
 DOWNLOADS_PATH = "/var/ton-work/ts-downloads/"
+BAGS_PER_RESTART = 100  # рестарт ноды каждые N bags
 
 
 def get_service_user(service, default):
@@ -188,10 +189,7 @@ def download_and_move(local, bag):
 		return False
 	#end if
 
-	subprocess.run(
-		f'mv -n {bag_path}/*/*/* {IMPORT_DIR}',
-		shell=True
-	)
+	subprocess.run(f'mv -n {bag_path}/*/*/* {IMPORT_DIR}', shell=True)
 
 	# chown как в FirstNodeSettings — файлы скачаны от root, нода запущена от vuser
 	vuser = get_validator_user()
@@ -255,6 +253,7 @@ def main():
 	bags = None         # список bags из индекса
 	bag_index = None    # текущая позиция в списке
 	last_bag_to = None  # bag['to'] последнего успешно скачанного bag
+	bags_downloaded = 0 # счётчик скачанных bags с последнего рестарта ноды
 
 	while local.working:
 		try:
@@ -293,10 +292,16 @@ def main():
 			if ok:
 				last_bag_to = bag['to']
 				bag_index += 1
+				bags_downloaded += 1
 				if bag_index >= len(bags):
-					local.add_log("All bags downloaded, refreshing index in 3600s", "info")
+					local.add_log("All bags downloaded, restarting validator to pick up import/", "info")
+					start_service(local, "validator")
+					bags_downloaded = 0
 					bags = None
 					time.sleep(3600)
+				elif bags_downloaded % BAGS_PER_RESTART == 0:
+					local.add_log(f"Downloaded {bags_downloaded} bags, restarting validator to pick up import/", "info")
+					start_service(local, "validator")
 				#end if
 			else:
 				local.add_log("download_and_move failed, will retry", "warning")
