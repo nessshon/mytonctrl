@@ -224,7 +224,7 @@ def resolve_start_index(local, vc, bags, last_bag_to):
 	else:
 		node_seqno = get_node_seqno(local, vc) or 0
 		import_seqno = get_import_max_seqno()
-		start_seqno = max(0, max(node_seqno, import_seqno) - 50000)
+		start_seqno = max(0, max(node_seqno, import_seqno) - 30000)
 	#end if
 	local.add_log(f"Resolving start index: start_seqno={start_seqno}, last_bag_to={last_bag_to}", "info")
 	return find_start_index(bags, start_seqno)
