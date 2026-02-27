@@ -182,8 +182,14 @@ def download_and_move(local, bag):
 
 	# mv -n bag/*/*/*  import/
 	os.makedirs(IMPORT_DIR, exist_ok=True)
+	bag_path = f"{DOWNLOADS_PATH}/{bag_id}"
+	if not os.path.isdir(bag_path):
+		local.add_log(f"Bag {bag_id} directory missing after download, skipping", "warning")
+		return False
+	#end if
+
 	subprocess.run(
-		f'mv -n {DOWNLOADS_PATH}/{bag_id}/*/*/* {IMPORT_DIR}',
+		f'mv -n {bag_path}/*/*/* {IMPORT_DIR}',
 		shell=True
 	)
 
@@ -191,8 +197,8 @@ def download_and_move(local, bag):
 	vuser = get_validator_user()
 	subprocess.run(["chown", "-R", f"{vuser}:{vuser}", IMPORT_DIR])
 
-	# Убрать скачанный bag
-	subprocess.run(["rm", "-rf", f"{DOWNLOADS_PATH}/{bag_id}"])
+	# Удалить скачанный bag
+	subprocess.run(["rm", "-rf", bag_path])
 
 	local.add_log(f"Bag {bag_id} done, blocks {bag['from']}-{bag['to']} moved to import/", "info")
 	return True
